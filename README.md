@@ -58,12 +58,13 @@ The following parts are optional if you want to include the LEDS:
 
 ### Printing Instructions
 
-#### Printed version
+#### - Printed version
 Print all files in the 3D Files/STL's folder. You will need 6 of the keycap file, two of the Menu button file and two of the PCB spacer file.
 
 
-#### Machined Version
+#### - Machined Version
 Print all files in the 3D Files/STL's folder except: "Custom Keycap.STL", "Macro Pad - Printed Version.STL" and "Menu Button Printed.STL"
+Get all of the .STEP files in the 3D Files/STEP folder machined. Don't include the Macropad Assembly .STEP file from the main directory as it is a complete model of Macro Pad rather than an individual part.
 
 ### Motor Assembly
 
@@ -71,3 +72,28 @@ I made this quick picture to show how the wheel motor gets assembled:
 
 ![Alt text](MotorStack.png "Motor Assembly")
 
+The "Encoder Mount.STL" part has two small holes in it that are supposed to get tapped to M2 for the encoder. If you don't have an M2 tap, you can probably just glue the encoder to the mount or even use some small self tapping screws to hold it in place.
+
+The magnet holder should be a snug fit inside the hollow motor shaft. If it isn't, I'd recomend a drop of super glue to ensure it can't work free over time.
+
+#### Software
+
+The software is still a work in progress. Everything is functional currently, but I'm sure I will have missed some bugs as I've only had time to do some limited testing so far. I will work on clearing as many bugs as I can in the coming weeks but let me know if you run into any! If you're going to submit an issue with a bug, please try and recount your steps to re-create the bug as it will make fixing it much easier!
+
+If you don't wish to compile the code yourself, just copy the latest version of the MacroPad.UF2 file from the software folder and install it directly onto the memory of your Pico using the boot method shown in the video.
+
+You will also need to have your SD card set up correctly in order to use the macro pad.
+Copy the entire contents of the "Example SD Card" folder onto you SD card to begin with to ensure everything is working before you start working on your own files.
+
+
+#### XML Config
+
+In the <Settings> tag of the XML file you will find all of the settings for the LED's, along with the P and I tuning values for the various wheel modes.
+
+There are 6 acceptable inpts for the <LED_Mode> tag.
+-Breath
+-Bands
+-Halo
+-Rainbow
+-Solid
+-Off
