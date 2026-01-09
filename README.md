@@ -64,7 +64,7 @@ Print all files in the 3D Files/STL's folder. You will need 6 of the keycap file
 
 #### - Machined Version
 Print all files in the 3D Files/STL's folder except: "Custom Keycap.STL", "Macro Pad - Printed Version.STL" and "Menu Button Printed.STL"
-Get all of the .STEP files in the 3D Files/STEP folder machined. Don't include the Macropad Assembly .STEP file from the main directory as it is a complete model of Macro Pad rather than an individual part.
+Get all of the .STEP files in the 3D Files/STEP folder machined. Don't include the Macropad Assembly .STEP file from the main directory as it is a complete model of Macro Pad rather than an individual part. If you supply the MacroPad Housing.PDF file with the housing, you can have the mounting holes tapped for you.
 
 ### Motor Assembly
 
