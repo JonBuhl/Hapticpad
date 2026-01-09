@@ -1,4 +1,4 @@
-# CNCDan - Hapticpad
+# CNCDan - Haptic Pad
 ![Alt text](title.png "Haptic Pad")
 
 A 6 button macropad with a display for button labels and a mouse knob with haptic feedback!
@@ -100,6 +100,15 @@ The motor tuning for the printed version of the wheel should be pretty good, so 
 
 In the `<Profiles>` tag is where each profile is stored.
 
-Each profile has a name value assigned like this: `<Profile name="Solidworks">`
+Each profile starts off with a name value assigned like this: `<Profile name="Solidworks">`
 Then, there is a `<WheelMode>` and `<WheelKey>` tag. `<WheelKey>` can be any key value from this website https://keycode-visualizer.netlify.app/ and will be held down when the wheel is moving. `<WheelMode>` can only be one of three things: Clicky, Twist or Momentum. Again, these have to be exact so copy and paste from here to ensure they work.
 
+Next is a `<MacroButtons>` tag that holds all of our Macro buttons for the profile.
+
+Each macro button looks like this: 
+`<MacroButton>
+    <Action>0,68</Action>
+    <Action>0,0</Action>
+    <Action>0,0</Action>
+    <Label>Dimension</Label>
+</MacroButton>`
