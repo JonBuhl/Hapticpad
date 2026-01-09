@@ -76,9 +76,13 @@ The "Encoder Mount.STL" part has two small holes in it that are supposed to get 
 
 The magnet holder should be a snug fit inside the hollow motor shaft. If it isn't, I'd recomend a drop of super glue to ensure it can't work free over time.
 
+### PCB's
+
+[!WARNING] I'm running out of time before the video goes live, so if you're seeing this the PCB's won't be uploaded yet but they will be within 24 hours! 
+
 #### Software
 
-The software is still a work in progress. Everything is functional currently, but I'm sure I will have missed some bugs as I've only had time to do some limited testing so far. I will work on clearing as many bugs as I can in the coming weeks but let me know if you run into any! If you're going to submit an issue with a bug, please try and recount your steps to re-create the bug as it will make fixing it much easier!
+[!WARNING] The software is still a work in progress. Everything is functional currently, but I'm sure I will have missed some bugs as I've only had time to do some limited testing so far. I will work on clearing as many bugs as I can in the coming weeks but let me know if you run into any! If you're going to submit an issue with a bug, please try and recount your steps to re-create the bug as it will make fixing it much easier!
 
 If you don't wish to compile the code yourself, just copy the latest version of the MacroPad.UF2 file from the software folder and install it directly onto the memory of your Pico using the boot method shown in the video.
 
