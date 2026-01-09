@@ -94,7 +94,7 @@ There are 6 acceptable inpts for the `<LED_Mode>` tag. If you spell the words in
 
 Breath, Bands, Halo, Rainbow, Solid, Off
 
-`<LED_Primary>` and `<LED_Secondary>` are the two colours used in the effects and they are formatted in the order of Red, Green and Blue with values between 0-255. Rainbow and Off obviously don't make use of these colour options and solid just sets the colour to `<LED_Primarys>` and ignores `<LED_Secondarys>`.
+`<LED_Primary>` and `<LED_Secondary>` are the two colours used in the effects and they are formatted in the order of Red, Green and Blue with values between 0-255. Rainbow and Off obviously don't make use of these colour options and solid just sets the colour to `<LED_Primary>` and ignores `<LED_Secondary>`.
 
 The motor tuning for the printed version of the wheel should be pretty good, so try with my default P and I values first before you do any tuning. I've left out D from the tuning options as it doesn't seem to be needed for this type of feedback and just makes tuning more complex.
 

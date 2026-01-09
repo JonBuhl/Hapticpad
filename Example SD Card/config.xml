@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <Settings>
+    <LED_Mode>Bands</LED_Mode>
+    <LED_Primary>255,0,0</LED_Primary>
+    <LED_Secondary>0,0,255</LED_Secondary>
+    <Clicky_P>0.5</Clicky_P>
+    <Clicky_I>0</Clicky_I>
+    <Twist_P>0.65</Twist_P>
+    <Twist_I>0.2</Twist_I>
+    <Momentum_P>0.3</Momentum_P>
+    <Momentum_I>0</Momentum_I>
+  </Settings>
+  <Profiles>
+
+    <Profile name="Example 1">
+      <WheelMode>Clicky</WheelMode>
+      <WheelKey>0</WheelKey>
+      <MacroButtons>
+        <MacroButton>
+          <Action>0,49</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Button 1</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,50</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Button 2</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,51</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Button 3</Label>
+	</MacroButton>
+        <MacroButton>
+	  <Action>0,52</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Button 4</Label>
+	</MacroButton>
+        <MacroButton>
+	  <Action>0,53</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Button 5</Label>
+	</MacroButton>
+        <MacroButton>
+	  <Action>0,54</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Button 6</Label>
+	</MacroButton>
+      </MacroButtons>
+    </Profile>
+
+  </Profiles>
+</Configuration>
