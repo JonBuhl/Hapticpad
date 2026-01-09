@@ -114,3 +114,7 @@ Each macro button looks like this:
     <Label>Dimension</Label>
 </MacroButton>
 ```
+There will be 6 of these sections per profile. Each action has two values, the first is the delay (in milliseconds) to perform before the action, followed by the keycode you wish to press (using the same website I linked earlier). Setting both of these values to 0 for any of the three actions will mean nothing happens for that action.
+Label is simply the name that will appear on screen for that button.
+
+And that's it! just replicate that first example profile as many times as you like (up to 256 times, anyway) and each one will create a new profile that you can store your macros in.
