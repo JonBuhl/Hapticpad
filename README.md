@@ -56,4 +56,18 @@ The following parts are optional if you want to include the LEDS:
 
 4x M3x6 CSK
 
-### Instructions
+### Printing Instructions
+
+#### Printed version
+Print all files in the 3D Files/STL's folder. You will need 6 of the keycap file, two of the Menu button file and two of the PCB spacer file.
+
+
+#### Machined Version
+Print all files in the 3D Files/STL's folder except: "Custom Keycap.STL", "Macro Pad - Printed Version.STL" and "Menu Button Printed.STL"
+
+### Motor Assembly
+
+I made this quick picture to show how the wheel motor gets assembled:
+
+![Alt text](Motor Stack.png "Motor Assembly")
+
