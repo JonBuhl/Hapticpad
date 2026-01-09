@@ -88,7 +88,9 @@ Copy the entire contents of the "Example SD Card" folder onto you SD card to beg
 
 #### XML Config
 
-In the "Settings" tag of the XML file you will find all of the settings for the LED's, along with the P and I tuning values for the various wheel modes.
+In this section, I've had to replace <> tags with "" to stop github from hiding the contents of the tag.
+
+In the `<Settings>` tag of the XML file you will find all of the settings for the LED's, along with the P and I tuning values for the various wheel modes.
 
 There are 6 acceptable inpts for the "LED_Mode" tag. If you spell the words incorrectly the commands won't work, so it would be a good idea to copy and paste from here:
 
@@ -100,6 +102,6 @@ The motor tuning for the printed version of the wheel should be pretty good, so 
 
 In the "Profiles" tag is where each profile is stored.
 
-Each profile has a name value assigned like this: <Profile name="Solidworks">
+Each profile has a name value assigned like this: "Profile name="Solidworks""
 Then, there is a WheelMode and WheelKey tag. WheelKey can be any key value from this website https://keycode-visualizer.netlify.app/ and will be held down when the wheel is moving. WheelMode can only be one of three things: Clicky, Twist or Momentum. Again, these have to be exact so copy and paste from here to ensure they work.
 
