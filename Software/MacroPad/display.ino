@@ -76,3 +76,40 @@ void drawProfileMenu(){
     y += 9;
   }
 }
+
+void drawRootMenu(uint8_t selection){
+  u8g2.setFont(u8g2_font_5x7_tf);
+  const char *options[2] = {"Profile Menu", "RGB Modes"};
+  int y = 26;
+
+  for(uint8_t i = 0; i < 2; i++){
+    if(i == selection){
+      u8g2.drawBox(0, y - 8, u8g2.getStrWidth(options[i]) + 2, 9);
+      u8g2.setDrawColor(0);
+      u8g2.drawStr(1, y, options[i]);
+      u8g2.setDrawColor(1);
+    } else {
+      u8g2.drawStr(1, y, options[i]);
+    }
+    y += 12;
+  }
+}
+
+void drawRGBMenu(uint8_t selection){
+  u8g2.setFont(u8g2_font_5x7_tf);
+  int y = 18;
+
+  for(uint8_t i = 0; i < ledModeMenuCount; i++){
+    const char *modeName = ledModeToString(ledModeMenu[i]);
+
+    if(i == selection){
+      u8g2.drawBox(0, y - 8, u8g2.getStrWidth(modeName) + 2, 9);
+      u8g2.setDrawColor(0);
+      u8g2.drawStr(1, y, modeName);
+      u8g2.setDrawColor(1);
+    } else {
+      u8g2.drawStr(1, y, modeName);
+    }
+    y += 10;
+  }
+}

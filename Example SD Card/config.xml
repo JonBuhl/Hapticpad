@@ -4,6 +4,14 @@
     <LED_Mode>Bands</LED_Mode>
     <LED_Primary>255,0,0</LED_Primary>
     <LED_Secondary>0,0,255</LED_Secondary>
+    <LED_Menu>
+      <Mode>Halo</Mode>
+      <Mode>Breath</Mode>
+      <Mode>Bands</Mode>
+      <Mode>Rainbow</Mode>
+      <Mode>Solid</Mode>
+      <Mode>Off</Mode>
+    </LED_Menu>
     <Clicky_P>0.5</Clicky_P>
     <Clicky_I>0</Clicky_I>
     <Twist_P>0.65</Twist_P>

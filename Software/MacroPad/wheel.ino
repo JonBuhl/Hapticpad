@@ -66,18 +66,34 @@ void notchyWheel(){
   new_target_angle = round(encoderAngle / angle_step) * angle_step;
 
   if(new_target_angle != target_angle){
-    wheelActionCheck();
+    if(!profileSelectMenu){
+      wheelActionCheck();
+    } else {
+      cancelWheelAction();
+    }
+
     scroll = round((target_angle - new_target_angle) / angle_step);
+
     if(!profileSelectMenu){
       usb_mouse.mouseScroll(0, scroll, 0);
     } else {
-      if(scroll < 0){
-        if(activeProfile < totalProfiles - 1){
+      if(menuPage == MENU_PROFILE){
+        if(scroll < 0 && activeProfile < totalProfiles - 1){
           activeProfile++;
-        }
-      } else {
-        if(activeProfile > 0){
+        } else if(scroll > 0 && activeProfile > 0){
           activeProfile--;
+        }
+      } else if(menuPage == MENU_ROOT){
+        if(scroll < 0 && menuRootSelection < 1){
+          menuRootSelection++;
+        } else if(scroll > 0 && menuRootSelection > 0){
+          menuRootSelection--;
+        }
+      } else if(menuPage == MENU_RGB){
+        if(scroll < 0 && rgbMenuSelection + 1 < ledModeMenuCount){
+          rgbMenuSelection++;
+        } else if(scroll > 0 && rgbMenuSelection > 0){
+          rgbMenuSelection--;
         }
       }
     }

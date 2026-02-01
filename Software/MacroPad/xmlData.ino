@@ -17,13 +17,8 @@ uint8_t parseWheelMode(const char *mode) {
 }
 
 uint8_t parseLEDMode(const char *mode) {
-  if (strcmp(mode, "Breath") == 0)   return 1;
-  if (strcmp(mode, "Bands") == 0)    return 2;
-  if (strcmp(mode, "Halo") == 0) return 0;
-  if (strcmp(mode, "Rainbow") == 0) return 3;
-  if (strcmp(mode, "Solid") == 0) return 4;
-  if (strcmp(mode, "Off") == 0) return 5;
-  return 5;
+  int8_t idx = ledModeIndex(mode);
+  return idx >= 0 ? (uint8_t)idx : 5;
 }
 
 uint16_t countProfiles(const char *filename) {
@@ -141,6 +136,12 @@ bool loadSettings(const char *filename){
   Serial.print("LED Mode = ");
   Serial.println(ledMode);
 
+  // Reset LED menu to defaults in case the XML does not override it
+  ledModeMenuCount = LED_MODE_COUNT;
+  for(uint8_t i = 0; i < LED_MODE_COUNT; i++){
+    ledModeMenu[i] = i;
+  }
+
   file.find("<LED_Primary>");
   primaryColour[0] = (uint8_t)file.parseInt(); //Red
   primaryColour[1] = (uint8_t)file.parseInt(); //Green
@@ -150,6 +151,38 @@ bool loadSettings(const char *filename){
   secondaryColour[0] = (uint8_t)file.parseInt(); //Red
   secondaryColour[1] = (uint8_t)file.parseInt(); //Green
   secondaryColour[2] = (uint8_t)file.parseInt(); //Blue
+
+  if(file.find("<LED_Menu>")){
+    ledModeMenuCount = 0;
+
+    while(ledModeMenuCount < LED_MODE_COUNT && file.find("<Mode>")){
+      len = file.readBytesUntil('<', buffer, sizeof(buffer) - 1);
+      buffer[len] = '\0';
+      int8_t idx = ledModeIndex(buffer);
+
+      if(idx >= 0){
+        bool alreadyAdded = false;
+        for(uint8_t j = 0; j < ledModeMenuCount; j++){
+          if(ledModeMenu[j] == (uint8_t)idx){
+            alreadyAdded = true;
+            break;
+          }
+        }
+
+        if(!alreadyAdded){
+          ledModeMenu[ledModeMenuCount] = (uint8_t)idx;
+          ledModeMenuCount++;
+        }
+      }
+    }
+
+    if(ledModeMenuCount == 0){
+      for(uint8_t i = 0; i < LED_MODE_COUNT; i++){
+        ledModeMenu[i] = i;
+      }
+      ledModeMenuCount = LED_MODE_COUNT;
+    }
+  }
 
   file.find("<Clicky_P>");
   Clicky_P = file.parseFloat();
@@ -163,6 +196,8 @@ bool loadSettings(const char *filename){
   Momentum_P = file.parseFloat();
   file.find("<Momentum_I>");
   Momentum_I = file.parseFloat();
+
+  rgbMenuSelection = findLedMenuIndex(ledMode);
 
   file.close();
   return true;

@@ -40,6 +40,38 @@ int sequenceStep = 0;
 int ledMode = 3;
 unsigned long ledTimer;
 
+const uint8_t LED_MODE_COUNT = 6;
+const char *ledModeNames[LED_MODE_COUNT] = {"Halo", "Breath", "Bands", "Rainbow", "Solid", "Off"};
+uint8_t ledModeMenu[LED_MODE_COUNT] = {0, 1, 2, 3, 4, 5};
+uint8_t ledModeMenuCount = LED_MODE_COUNT;
+uint8_t rgbMenuSelection = 3;
+
+int8_t ledModeIndex(const char *mode) {
+  if (strcmp(mode, "Halo") == 0) return 0;
+  if (strcmp(mode, "Breath") == 0) return 1;
+  if (strcmp(mode, "Bands") == 0) return 2;
+  if (strcmp(mode, "Rainbow") == 0) return 3;
+  if (strcmp(mode, "Solid") == 0) return 4;
+  if (strcmp(mode, "Off") == 0) return 5;
+  return -1;
+}
+
+const char *ledModeToString(uint8_t mode) {
+  if (mode < LED_MODE_COUNT) {
+    return ledModeNames[mode];
+  }
+  return "";
+}
+
+uint8_t findLedMenuIndex(uint8_t mode){
+  for(uint8_t i = 0; i < ledModeMenuCount; i++){
+    if(ledModeMenu[i] == mode){
+      return i;
+    }
+  }
+  return 0;
+}
+
 //LED Halo Variables
 int haloCount = 0; //Which is the brightest LED in the sequence
 
@@ -141,6 +173,19 @@ bool profilePlusStarted = false;
 bool profileMinusStarted = false;
 bool profileSelectMenu = false;
 
+enum MenuPage : uint8_t {
+  MENU_NONE = 0,
+  MENU_ROOT,
+  MENU_PROFILE,
+  MENU_RGB
+};
+
+MenuPage menuPage = MENU_NONE;
+uint8_t menuRootSelection = 0; //0 = Profile menu, 1 = RGB menu
+
+unsigned long buttonPressStart[buttonCount];
+bool menuButtonHandled[buttonCount];
+
 uint8_t wheelAction;
 uint8_t macroAction[6][3];   // decimal values
 uint16_t macroDelay[6][3];
@@ -216,8 +261,12 @@ void setup1(){ //core 1
   initialiseSD();
 
   loadSettings("/config.xml");
+  int storedLedMode = readLastLedMode();
+  if(storedLedMode >= 0 && storedLedMode < LED_MODE_COUNT){
+    ledMode = storedLedMode;
+  }
 
-  calculateColourMultiplier();
+  applyLedMode(ledMode);
 
   u8g2.begin();
 
@@ -231,10 +280,19 @@ void setup1(){ //core 1
 void buttonRead(){ //Read button inputs and set state arrays.
   for (int i = 0; i < buttonCount; i++){
     int input = !digitalRead(buttonPins[i]);
-    if (input != lastButtonState[i]){
-      lastButtonState[i] = input;
+    bool prevState = lastButtonState[i];
+    if (input && !prevState){
+      buttonPressStart[i] = millis();
+    }
+    lastButtonState[i] = input;
+    if(!input){
+      menuButtonHandled[i] = false;
     }
   }
+  if(profileSelectMenu){
+    handleMenuButtons();
+  }
+
   if(sdDetected && !profileSelectMenu){
     for(int i = 0; i < 6; i++){
       if(lastButtonState[i]){
@@ -249,8 +307,7 @@ void buttonRead(){ //Read button inputs and set state arrays.
         profileChangeTimer = millis();
       }
       if(profilePlusStarted && profileChangeTimer + 100 < millis()){
-        profileSelectMenu = true;
-        profileChangeTimer = millis();
+        openMenu();
       }
     } else {
       if(profilePlusStarted){
@@ -270,10 +327,7 @@ void buttonRead(){ //Read button inputs and set state arrays.
         profileMinusStarted = true;
         profileChangeTimer = millis();
       } else if(profileMinusStarted && profileChangeTimer + 100 < millis()){
-        profileSelectMenu = true;
-        profileChangeTimer = millis();
-        //delay(500);
-        //Serial.println("Trigger Menu");
+        openMenu();
       }
     } else {
       if(profileMinusStarted){
@@ -292,30 +346,17 @@ void buttonRead(){ //Read button inputs and set state arrays.
       profileMinusStarted = false;
       profilePlusStarted = false;
     }
-      
-    if(keyPressed && keyTimer + 50 < millis()){
-      usb_keyboard.keyboardRelease(0);
-      keyPressed = false;
-    }
   } else if(!sdDetected && !profileSelectMenu){
     if(lastButtonState[4]){
       initialiseSD();
       delay(100);
     }
-  } else {
-    if(profileChangeTimer + 500 < millis()){
-      if(lastButtonState[7] || lastButtonState[6]){
-        profileSelectMenu = false;
-        profileMinusStarted = false;
-        profilePlusStarted = false;
-        loadProfile("/config.xml", activeProfile);
-        storeLastProfile();
-        Serial.print("Stored last profile = ");
-        Serial.println(activeProfile);
-        loadButtonIcons();
-        delay(200);
-      }
-    }
+
+  }
+
+  if(keyPressed && keyTimer + 50 < millis()){
+    usb_keyboard.keyboardRelease(0);
+    keyPressed = false;
   }
 }
 
@@ -365,6 +406,96 @@ void loop() {
   }
 }
 
+void resetLedAnimationState(){
+  sequenceStep = 0;
+  haloCount = 0;
+  breathIncrease = true;
+  evenNumber = false;
+  loopCounter = 0;
+  ledTimer = millis();
+}
+
+void applyLedMode(uint8_t mode){
+  if(mode >= LED_MODE_COUNT){
+    mode = LED_MODE_COUNT - 1;
+  }
+  ledMode = mode;
+  calculateColourMultiplier();
+  rgbMenuSelection = findLedMenuIndex(ledMode);
+  resetLedAnimationState();
+}
+
+void openMenu(){
+  profileSelectMenu = true;
+  menuPage = MENU_ROOT;
+  menuRootSelection = 0;
+  rgbMenuSelection = findLedMenuIndex(ledMode);
+  target_angle = round(encoder.getAngle() / angle_step) * angle_step;
+  new_target_angle = target_angle;
+  wheelModeChanged = true;
+}
+
+void exitMenu(){
+  profileSelectMenu = false;
+  menuPage = MENU_NONE;
+  profileMinusStarted = false;
+  profilePlusStarted = false;
+  wheelModeChanged = true;
+}
+
+void applyProfileSelection(){
+  loadProfile("/config.xml", activeProfile);
+  storeLastProfile();
+  Serial.print("Stored last profile = ");
+  Serial.println(activeProfile);
+  loadButtonIcons();
+  exitMenu();
+}
+
+void applyLedSelection(){
+  if(ledModeMenuCount == 0){
+    return;
+  }
+
+  if(rgbMenuSelection >= ledModeMenuCount){
+    rgbMenuSelection = 0;
+  }
+
+  uint8_t selectedMode = ledModeMenu[rgbMenuSelection];
+  applyLedMode(selectedMode);
+  storeLastLEDMode();
+  exitMenu();
+}
+
+void handleMenuButtons(){
+  if(lastButtonState[6] && !menuButtonHandled[6] && buttonPressStart[6] + 300 < millis()){
+    menuButtonHandled[6] = true;
+
+    if(menuPage == MENU_ROOT){
+      if(menuRootSelection == 0){
+        menuPage = MENU_PROFILE;
+      } else {
+        menuPage = MENU_RGB;
+        rgbMenuSelection = findLedMenuIndex(ledMode);
+      }
+    } else if(menuPage == MENU_PROFILE){
+      applyProfileSelection();
+    } else if(menuPage == MENU_RGB){
+      applyLedSelection();
+    }
+  }
+
+  if(lastButtonState[7] && !menuButtonHandled[7] && buttonPressStart[7] + 300 < millis()){
+    menuButtonHandled[7] = true;
+
+    if(menuPage == MENU_ROOT){
+      exitMenu();
+    } else {
+      menuPage = MENU_ROOT;
+    }
+  }
+}
+
 void macroOutput(int button){
   uint8_t keycode[6] = { 0 };
   int modifier = 0;
@@ -409,7 +540,13 @@ void loop1() {
         drawGrid();
         drawActiveProfile();
       } else {
-        drawProfileMenu();
+        if(menuPage == MENU_ROOT){
+          drawRootMenu(menuRootSelection);
+        } else if(menuPage == MENU_PROFILE){
+          drawProfileMenu();
+        } else if(menuPage == MENU_RGB){
+          drawRGBMenu(rgbMenuSelection);
+        }
       }
 
       encoderAngle = encoder.getAngle();
@@ -451,6 +588,29 @@ int readLastProfile(){
 
   if (!file){
     return 0;
+  }
+
+  return (uint8_t)file.parseInt();
+}
+
+bool storeLastLEDMode(){
+  SD.remove("/lastLEDMode");
+
+  File file = SD.open("/lastLEDMode", FILE_WRITE);
+  if(file){
+    file.print(ledMode);
+    file.close();
+    return true;
+  }
+
+  return false;
+}
+
+int readLastLedMode(){
+  File file = SD.open("/lastLEDMode");
+
+  if(!file){
+    return -1;
   }
 
   return (uint8_t)file.parseInt();

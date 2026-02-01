@@ -112,7 +112,7 @@ void rainbowLED(){
 }
 
 void calculateColourMultiplier(){
-  int steps;
+  int steps = 1;
   if(ledMode == 0){
     steps = 20;
   } else if(ledMode == 1){

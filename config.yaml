@@ -1,0 +1,43 @@
+Settings:
+  LED_Mode: "Solid"
+  LED_Primary: [255, 0, 0]
+  LED_Secondary: [0, 0, 255]
+  LED_Menu: ["Halo", "Breath", "Bands", "Rainbow", "Solid", "Off"]
+  Clicky_P: 0.5
+  Clicky_I: 0.0
+  Twist_P: 0.65
+  Twist_I: 0.2
+  Momentum_P: 0.3
+  Momentum_I: 0.0
+
+Profiles:
+  - name: "Example 1"
+    WheelMode: "Clicky"   # Clicky | Twist | Momentum
+    WheelKey: 0
+    buttons:
+      - label: "Button 1", actions: [[0, 49], [0, 0], [0, 0]]
+      - label: "Button 2", actions: [[0, 50], [0, 0], [0, 0]]
+      - label: "Button 3", actions: [[0, 51], [0, 0], [0, 0]]
+      - label: "Button 4", actions: [[0, 52], [0, 0], [0, 0]]
+      - label: "Button 5", actions: [[0, 53], [0, 0], [0, 0]]
+      - label: "Button 6", actions: [[0, 54], [0, 0], [0, 0]]  
+  - name: "Example 12"
+    WheelMode: "Momentum"   # Clicky | Twist | Momentum
+    WheelKey: 0
+    buttons:
+      - label: "Button 1", actions: [[0, 49], [0, 0], [0, 0]]
+      - label: "Button 2", actions: [[0, 50], [0, 0], [0, 0]]
+      - label: "Button 3", actions: [[0, 51], [0, 0], [0, 0]]
+      - label: "Button 4", actions: [[0, 52], [0, 0], [0, 0]]
+      - label: "Button 5", actions: [[0, 53], [0, 0], [0, 0]]
+      - label: "Button 6", actions: [[0, 54], [0, 0], [0, 0]]
+  - name: "Example 3"
+    WheelMode: "Twist"   # Clicky | Twist | Momentum
+    WheelKey: 0
+    buttons:
+      - label: "Button 1", actions: [[0, 49], [0, 0], [0, 0]]
+      - label: "Button 2", actions: [[0, 50], [0, 0], [0, 0]]
+      - label: "Button 3", actions: [[0, 51], [0, 0], [0, 0]]
+      - label: "Button 4", actions: [[0, 52], [0, 0], [0, 0]]
+      - label: "Button 5", actions: [[0, 53], [0, 0], [0, 0]]
+      - label: "Button 6", actions: [[0, 54], [0, 0], [0, 0]]
