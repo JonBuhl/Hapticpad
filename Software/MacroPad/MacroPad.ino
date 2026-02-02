@@ -182,6 +182,7 @@ enum MenuPage : uint8_t {
 
 MenuPage menuPage = MENU_NONE;
 uint8_t menuRootSelection = 0; //0 = Profile menu, 1 = RGB menu
+bool menuReentryGuard = false; //prevents immediate re-entry after exit until buttons released
 
 unsigned long buttonPressStart[buttonCount];
 bool menuButtonHandled[buttonCount];
@@ -293,6 +294,13 @@ void buttonRead(){ //Read button inputs and set state arrays.
     handleMenuButtons();
   }
 
+  // avoid immediate re-entry after closing menu until both buttons are released
+  if(menuReentryGuard){
+    if(!lastButtonState[6] && !lastButtonState[7]){
+      menuReentryGuard = false;
+    }
+  }
+
   if(sdDetected && !profileSelectMenu){
     for(int i = 0; i < 6; i++){
       if(lastButtonState[i]){
@@ -301,7 +309,7 @@ void buttonRead(){ //Read button inputs and set state arrays.
         keyTimer = millis();
       }
     }
-    if(lastButtonState[6]){ //Next Profile
+    if(!menuReentryGuard && lastButtonState[6]){ //Next Profile
       if(!profilePlusStarted){
         profilePlusStarted = true;
         profileChangeTimer = millis();
@@ -322,7 +330,7 @@ void buttonRead(){ //Read button inputs and set state arrays.
         }
       }
     }
-    if(lastButtonState[7]){ //Previous Profile
+    if(!menuReentryGuard && lastButtonState[7]){ //Previous Profile
       if(!profileMinusStarted){
         profileMinusStarted = true;
         profileChangeTimer = millis();
@@ -440,6 +448,7 @@ void exitMenu(){
   menuPage = MENU_NONE;
   profileMinusStarted = false;
   profilePlusStarted = false;
+  menuReentryGuard = true; //wait for release before allowing menu again
   wheelModeChanged = true;
 }
 
@@ -468,7 +477,8 @@ void applyLedSelection(){
 }
 
 void handleMenuButtons(){
-  if(lastButtonState[6] && !menuButtonHandled[6] && buttonPressStart[6] + 300 < millis()){
+  // Button 6 = confirm/enter
+  if(lastButtonState[6] && !menuButtonHandled[6]){
     menuButtonHandled[6] = true;
 
     if(menuPage == MENU_ROOT){
@@ -485,7 +495,8 @@ void handleMenuButtons(){
     }
   }
 
-  if(lastButtonState[7] && !menuButtonHandled[7] && buttonPressStart[7] + 300 < millis()){
+  // Button 7 = back/exit
+  if(lastButtonState[7] && !menuButtonHandled[7]){
     menuButtonHandled[7] = true;
 
     if(menuPage == MENU_ROOT){
