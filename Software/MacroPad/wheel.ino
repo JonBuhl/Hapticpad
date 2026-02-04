@@ -48,15 +48,20 @@ void notchyWheel(){
   int scroll;
 
   if(wheelModeChanged){
-    motor.controller = MotionControlType::angle;
-    motor.PID_velocity.I = Clicky_I;//0;
-    Serial.print("Set I = ");
-    Serial.println(Clicky_I);
-    motor.PID_velocity.P = Clicky_P;//0.5f;
-    Serial.print("Set P = ");
-    Serial.println(Clicky_P);
-    motor.enable();
-    wheelModeChanged = false;
+    if(profileSelectMenu){
+      motor.disable(); // no haptics while in menu
+      wheelModeChanged = false;
+    } else {
+      motor.controller = MotionControlType::angle;
+      motor.PID_velocity.I = Clicky_I;//0;
+      Serial.print("Set I = ");
+      Serial.println(Clicky_I);
+      motor.PID_velocity.P = Clicky_P;//0.5f;
+      Serial.print("Set P = ");
+      Serial.println(Clicky_P);
+      motor.enable();
+      wheelModeChanged = false;
+    }
   }
 
 
