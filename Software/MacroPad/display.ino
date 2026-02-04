@@ -80,7 +80,7 @@ void drawProfileMenu(uint8_t selection){
 void drawRootMenu(uint8_t selection){
   u8g2.setFont(u8g2_font_5x7_tf);
   const char *options[3] = {"Profile Menu", "RGB Modes", "Colors"};
-  int y = 26;
+  int y = 26 - selection * 12; // keep selected entry anchored while list scrolls
 
   for(uint8_t i = 0; i < 3; i++){
     if(i == selection){
@@ -88,7 +88,7 @@ void drawRootMenu(uint8_t selection){
       u8g2.setDrawColor(0);
       u8g2.drawStr(1, y, options[i]);
       u8g2.setDrawColor(1);
-    } else {
+    } else if(y > 0){
       u8g2.drawStr(1, y, options[i]);
     }
     y += 12;
@@ -97,7 +97,7 @@ void drawRootMenu(uint8_t selection){
 
 void drawRGBMenu(uint8_t selection){
   u8g2.setFont(u8g2_font_5x7_tf);
-  int y = 18;
+  int y = 18 - selection * 10; // scroll list like profile menu
 
   for(uint8_t i = 0; i < ledModeMenuCount; i++){
     const char *modeName = ledModeToString(ledModeMenu[i]);
@@ -107,7 +107,7 @@ void drawRGBMenu(uint8_t selection){
       u8g2.setDrawColor(0);
       u8g2.drawStr(1, y, modeName);
       u8g2.setDrawColor(1);
-    } else {
+    } else if(y > 0){
       u8g2.drawStr(1, y, modeName);
     }
     y += 10;
@@ -118,7 +118,7 @@ void drawColorMenu(uint8_t selection){
   u8g2.setFont(u8g2_font_5x7_tf);
   const char *labels[2] = {"Primary", "Secondary"};
   const uint8_t *colors[2] = {primaryColour, secondaryColour};
-  int y = 18;
+  int y = 18 - selection * 10; // scroll list like profile menu
 
   for(uint8_t i = 0; i < 2; i++){
     char line[48];
@@ -134,7 +134,7 @@ void drawColorMenu(uint8_t selection){
       u8g2.setDrawColor(0);
       u8g2.drawStr(1, y, line);
       u8g2.setDrawColor(1);
-    } else {
+    } else if(y > 0){
       u8g2.drawStr(1, y, line);
     }
     y += 10;
