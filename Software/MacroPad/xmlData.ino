@@ -13,7 +13,8 @@ uint8_t parseWheelMode(const char *mode) {
   if (strcmp(mode, "Clicky") == 0)   return WHEEL_CLICKY;
   if (strcmp(mode, "Twist") == 0)    return WHEEL_TWIST;
   if (strcmp(mode, "Momentum") == 0) return WHEEL_MOMENTUM;
-  return 3;
+  if (strcmp(mode, "Free") == 0)     return WHEEL_FREE_SCROLL;
+  return WHEEL_CLICKY;
 }
 
 uint8_t parseLEDMode(const char *mode) {

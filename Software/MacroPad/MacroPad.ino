@@ -16,9 +16,10 @@ const unsigned char SD_Card [] PROGMEM = {
 #include <Wire.h>
 #endif
 
-#define WHEEL_CLICKY    0
-#define WHEEL_TWIST     1
-#define WHEEL_MOMENTUM  2
+#define WHEEL_CLICKY        0
+#define WHEEL_TWIST         1
+#define WHEEL_MOMENTUM      2
+#define WHEEL_FREE_SCROLL   3
 
 #define KEY_LEFT_CTRL 17
 
@@ -415,12 +416,23 @@ void loop() {
   lastWheelMode = wheelMode;
 
   if(!profileSelectMenu){
-    if(wheelMode == 0){
+    switch (wheelMode)
+    {
+    case WHEEL_CLICKY:
       notchyWheel();
-    } else if(wheelMode == 1){
+      break;
+    case WHEEL_TWIST:
       twistScroll();
-    } else if(wheelMode == 2){
+      break;
+    case WHEEL_MOMENTUM:
       freeSpinning();
+      break;
+    case WHEEL_FREE_SCROLL:
+      freeScroll();
+      break;
+
+    default:
+      break;
     }
   } else {
     notchyWheel(); // in menu: only menu navigation, no PC scroll
@@ -755,7 +767,7 @@ void loop1() {
 
       encoderAngle = encoder.getAngle();
 
-      if(!profileSelectMenu && wheelMode == 2){
+      if(!profileSelectMenu && wheelMode == WHEEL_MOMENTUM){
         if(abs(lastEncoderAngle - encoderAngle) > 0.1){
           wheelActionCheck();
           usb_mouse.mouseScroll(0, (lastEncoderAngle - encoderAngle) * 10, 0);
@@ -834,8 +846,8 @@ bool readLastState(){
 
   file.close();
 
-  if(wheelMode > 2){
-    wheelMode = 0;
+  if(wheelMode > WHEEL_FREE_SCROLL){
+    wheelMode = WHEEL_CLICKY;
   }
   if(ledMode >= LED_MODE_COUNT){
     ledMode = LED_MODE_COUNT - 1;

@@ -115,6 +115,33 @@ void cancelWheelAction(){
   }
 }
 
+void freeScroll(){
+  if(wheelModeChanged){
+    motor.disable();
+    decelDetected = false;
+    decelerating = false;
+    target_velocity = 0;
+    last_velocity = 0;
+    lastEncoderAngle = encoder.getAngle();
+    cancelWheelAction();
+    wheelModeChanged = false;
+  }
+
+  encoderAngle = encoder.getAngle();
+  float delta = encoderAngle - lastEncoderAngle;
+
+  if(abs(delta) > 0.05f){
+    wheelActionCheck();
+    int scroll = (int)round((lastEncoderAngle - encoderAngle) * 10);
+    if(scroll != 0){
+      usb_mouse.mouseScroll(0, scroll, 0);
+    }
+    lastEncoderAngle = encoderAngle;
+  } else {
+    cancelWheelAction();
+  }
+}
+
 void freeSpinning(){
   if(wheelModeChanged){
     motor.controller = MotionControlType::velocity;
