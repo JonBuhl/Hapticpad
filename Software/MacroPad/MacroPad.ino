@@ -51,6 +51,7 @@ uint8_t colorEditSelection = 0;
 uint8_t colorEditChannel = 0; //0=R,1=G,2=B
 bool colorEditActive = false;
 uint8_t *colorEditPtr = nullptr;
+bool colorDirty = false;
 
 int8_t ledModeIndex(const char *mode) {
   if (strcmp(mode, "Halo") == 0) return 0;
@@ -277,6 +278,7 @@ void setup1(){ //core 1
   initialiseSD();
 
   loadSettings("/config.xml");
+  readLastColors();
   int storedLedMode = readLastLedMode();
   if(storedLedMode >= 0 && storedLedMode < LED_MODE_COUNT){
     ledMode = storedLedMode;
@@ -329,7 +331,7 @@ void buttonRead(){ //Read button inputs and set state arrays.
         profilePlusStarted = true;
         profileChangeTimer = millis();
       }
-      if(profilePlusStarted && profileChangeTimer + 100 < millis()){
+      if(profilePlusStarted && profileChangeTimer + 800 < millis()){
         openMenu();
       }
     } else {
@@ -349,7 +351,7 @@ void buttonRead(){ //Read button inputs and set state arrays.
       if(!profileMinusStarted){
         profileMinusStarted = true;
         profileChangeTimer = millis();
-      } else if(profileMinusStarted && profileChangeTimer + 100 < millis()){
+      } else if(profileMinusStarted && profileChangeTimer + 800 < millis()){
         openMenu();
       }
     } else {
@@ -522,6 +524,7 @@ void confirmColor(uint8_t selection){
   colorEditChannel = 0;
   colorEditActive = true;
   colorEditPtr = (selection == 0) ? primaryColour : secondaryColour;
+  colorDirty = false;
 }
 
 const MenuDefinition menuDefinitions[] = {
@@ -578,6 +581,7 @@ void menuScroll(int8_t scroll){
     value = constrain(value, 0, 255);
     colorEditPtr[colorEditChannel] = (uint8_t)value;
     calculateColourMultiplier();
+    colorDirty = true;
     return;
   }
 
@@ -605,6 +609,10 @@ void menuHandleConfirm(){
 
 void menuHandleBack(){
   if(menuPage == MENU_COLOR && colorEditActive){
+    if(colorDirty){
+      storeLastColors();
+      colorDirty = false;
+    }
     colorEditActive = false;
     colorEditChannel = 0;
     colorEditPtr = nullptr;
@@ -626,6 +634,10 @@ void renderCurrentMenu(){
 
 void openMenu(){
   profileSelectMenu = true;
+  profilePlusStarted = false;
+  profileMinusStarted = false;
+  menuButtonHandled[6] = true; //ignore current press that opened the menu
+  menuButtonHandled[7] = true;
   enterMenu(MENU_ROOT);
   target_angle = round(encoder.getAngle() / angle_step) * angle_step;
   new_target_angle = target_angle;
@@ -636,6 +648,10 @@ void exitMenu(){
   profileSelectMenu = false;
   menuPage = MENU_NONE;
   currentMenu = nullptr;
+  if(colorDirty){
+    storeLastColors();
+    colorDirty = false;
+  }
   colorEditActive = false;
   colorEditChannel = 0;
   colorEditPtr = nullptr;
@@ -806,4 +822,39 @@ int readLastLedMode(){
   }
 
   return (uint8_t)file.parseInt();
+}
+
+bool storeLastColors(){
+  SD.remove("/lastColors");
+
+  File file = SD.open("/lastColors", FILE_WRITE);
+  if(file){
+    file.print(primaryColour[0]); file.print(",");
+    file.print(primaryColour[1]); file.print(",");
+    file.print(primaryColour[2]); file.print("\n");
+    file.print(secondaryColour[0]); file.print(",");
+    file.print(secondaryColour[1]); file.print(",");
+    file.print(secondaryColour[2]);
+    file.close();
+    return true;
+  }
+  return false;
+}
+
+bool readLastColors(){
+  File file = SD.open("/lastColors");
+
+  if(!file){
+    return false;
+  }
+
+  primaryColour[0] = (uint8_t)file.parseInt();
+  primaryColour[1] = (uint8_t)file.parseInt();
+  primaryColour[2] = (uint8_t)file.parseInt();
+  secondaryColour[0] = (uint8_t)file.parseInt();
+  secondaryColour[1] = (uint8_t)file.parseInt();
+  secondaryColour[2] = (uint8_t)file.parseInt();
+
+  file.close();
+  return true;
 }
