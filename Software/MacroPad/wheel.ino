@@ -77,6 +77,7 @@ void notchyWheel(){
     if(!profileSelectMenu){
       usb_mouse.mouseScroll(0, scroll, 0);
     } else {
+      // no scroll to PC while in menus
       menuScroll(scroll);
     }
     target_angle = new_target_angle;

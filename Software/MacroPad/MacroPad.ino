@@ -278,11 +278,7 @@ void setup1(){ //core 1
   initialiseSD();
 
   loadSettings("/config.xml");
-  readLastColors();
-  int storedLedMode = readLastLedMode();
-  if(storedLedMode >= 0 && storedLedMode < LED_MODE_COUNT){
-    ledMode = storedLedMode;
-  }
+  readLastState();
 
   applyLedMode(ledMode);
 
@@ -427,7 +423,7 @@ void loop() {
       freeSpinning();
     }
   } else {
-    notchyWheel();
+    notchyWheel(); // in menu: only menu navigation, no PC scroll
   }
 }
 
@@ -610,7 +606,7 @@ void menuHandleConfirm(){
 void menuHandleBack(){
   if(menuPage == MENU_COLOR && colorEditActive){
     if(colorDirty){
-      storeLastColors();
+      storeLastState();
       colorDirty = false;
     }
     colorEditActive = false;
@@ -649,7 +645,7 @@ void exitMenu(){
   menuPage = MENU_NONE;
   currentMenu = nullptr;
   if(colorDirty){
-    storeLastColors();
+    storeLastState();
     colorDirty = false;
   }
   colorEditActive = false;
@@ -692,7 +688,7 @@ void applyLedSelection(uint8_t selection){
   rgbMenuSelection = selection;
   uint8_t selectedMode = ledModeMenu[selection];
   applyLedMode(selectedMode);
-  storeLastLEDMode();
+  storeLastState();
   exitMenu();
 }
 
@@ -759,7 +755,7 @@ void loop1() {
 
       encoderAngle = encoder.getAngle();
 
-      if(wheelMode == 2){
+      if(!profileSelectMenu && wheelMode == 2){
         if(abs(lastEncoderAngle - encoderAngle) > 0.1){
           wheelActionCheck();
           usb_mouse.mouseScroll(0, (lastEncoderAngle - encoderAngle) * 10, 0);
@@ -801,37 +797,16 @@ int readLastProfile(){
   return (uint8_t)file.parseInt();
 }
 
-bool storeLastLEDMode(){
-  SD.remove("/lastLEDMode");
+bool storeLastState(){
+  SD.remove("/lastState");
 
-  File file = SD.open("/lastLEDMode", FILE_WRITE);
+  File file = SD.open("/lastState", FILE_WRITE);
   if(file){
-    file.print(ledMode);
-    file.close();
-    return true;
-  }
-
-  return false;
-}
-
-int readLastLedMode(){
-  File file = SD.open("/lastLEDMode");
-
-  if(!file){
-    return -1;
-  }
-
-  return (uint8_t)file.parseInt();
-}
-
-bool storeLastColors(){
-  SD.remove("/lastColors");
-
-  File file = SD.open("/lastColors", FILE_WRITE);
-  if(file){
+    file.print(wheelMode); file.print(",");
+    file.print(ledMode); file.print(",");
     file.print(primaryColour[0]); file.print(",");
     file.print(primaryColour[1]); file.print(",");
-    file.print(primaryColour[2]); file.print("\n");
+    file.print(primaryColour[2]); file.print(",");
     file.print(secondaryColour[0]); file.print(",");
     file.print(secondaryColour[1]); file.print(",");
     file.print(secondaryColour[2]);
@@ -841,13 +816,15 @@ bool storeLastColors(){
   return false;
 }
 
-bool readLastColors(){
-  File file = SD.open("/lastColors");
+bool readLastState(){
+  File file = SD.open("/lastState");
 
   if(!file){
     return false;
   }
 
+  wheelMode = (uint8_t)file.parseInt();
+  ledMode = (uint8_t)file.parseInt();
   primaryColour[0] = (uint8_t)file.parseInt();
   primaryColour[1] = (uint8_t)file.parseInt();
   primaryColour[2] = (uint8_t)file.parseInt();
@@ -856,5 +833,13 @@ bool readLastColors(){
   secondaryColour[2] = (uint8_t)file.parseInt();
 
   file.close();
+
+  if(wheelMode > 2){
+    wheelMode = 0;
+  }
+  if(ledMode >= LED_MODE_COUNT){
+    ledMode = LED_MODE_COUNT - 1;
+  }
+
   return true;
 }
