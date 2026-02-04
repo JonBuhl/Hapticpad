@@ -46,6 +46,11 @@ const char *ledModeNames[LED_MODE_COUNT] = {"Halo", "Breath", "Bands", "Rainbow"
 uint8_t ledModeMenu[LED_MODE_COUNT] = {0, 1, 2, 3, 4, 5};
 uint8_t ledModeMenuCount = LED_MODE_COUNT;
 uint8_t rgbMenuSelection = 3;
+uint8_t colorMenuSelection = 0;
+uint8_t colorEditSelection = 0;
+uint8_t colorEditChannel = 0; //0=R,1=G,2=B
+bool colorEditActive = false;
+uint8_t *colorEditPtr = nullptr;
 
 int8_t ledModeIndex(const char *mode) {
   if (strcmp(mode, "Halo") == 0) return 0;
@@ -178,7 +183,8 @@ enum MenuPage : uint8_t {
   MENU_NONE = 0,
   MENU_ROOT,
   MENU_PROFILE,
-  MENU_RGB
+  MENU_RGB,
+  MENU_COLOR
 };
 
 MenuPage menuPage = MENU_NONE;
@@ -443,7 +449,7 @@ void applyLedMode(uint8_t mode){
 }
 
 uint8_t rootMenuCount(){
-  return 2;
+  return 3;
 }
 
 uint8_t profileMenuCount(){
@@ -452,6 +458,10 @@ uint8_t profileMenuCount(){
 
 uint8_t rgbMenuCount(){
   return ledModeMenuCount;
+}
+
+uint8_t colorMenuCount(){
+  return 2;
 }
 
 void enterRootMenu(){
@@ -474,11 +484,28 @@ void enterRGBMenu(){
   rgbMenuSelection = findLedMenuIndex(ledMode);
 }
 
+void enterColorMenu(){
+  colorMenuSelection = 0;
+  colorEditActive = false;
+  colorEditChannel = 0;
+  colorEditSelection = 0;
+  colorEditPtr = nullptr;
+}
+
 void confirmRoot(uint8_t selection){
-  if(selection == 0){
+  switch (selection)
+  {
+  case 0:
     enterMenu(MENU_PROFILE);
-  } else {
+    break;
+  case 1:
     enterMenu(MENU_RGB);
+    break;
+  case 2:
+    enterMenu(MENU_COLOR);
+    break;
+  default:
+    break;
   }
 }
 
@@ -490,10 +517,18 @@ void confirmRGB(uint8_t selection){
   applyLedSelection(selection);
 }
 
+void confirmColor(uint8_t selection){
+  colorEditSelection = selection;
+  colorEditChannel = 0;
+  colorEditActive = true;
+  colorEditPtr = (selection == 0) ? primaryColour : secondaryColour;
+}
+
 const MenuDefinition menuDefinitions[] = {
   {MENU_ROOT, MENU_NONE, &menuRootSelection, rootMenuCount, drawRootMenu, confirmRoot, enterRootMenu},
   {MENU_PROFILE, MENU_ROOT, &profileMenuSelection, profileMenuCount, drawProfileMenu, confirmProfile, enterProfileMenu},
-  {MENU_RGB, MENU_ROOT, &rgbMenuSelection, rgbMenuCount, drawRGBMenu, confirmRGB, enterRGBMenu}
+  {MENU_RGB, MENU_ROOT, &rgbMenuSelection, rgbMenuCount, drawRGBMenu, confirmRGB, enterRGBMenu},
+  {MENU_COLOR, MENU_ROOT, &colorMenuSelection, colorMenuCount, drawColorMenu, confirmColor, enterColorMenu }
 };
 
 const MenuDefinition* getMenuDefinition(MenuPage page){
@@ -537,6 +572,15 @@ void menuScroll(int8_t scroll){
     return;
   }
 
+  if(menuPage == MENU_COLOR && colorEditActive && colorEditPtr){
+    int8_t delta = (scroll < 0) ? 5 : -5; //wheel direction mapped to +/-
+    int16_t value = colorEditPtr[colorEditChannel] + delta;
+    value = constrain(value, 0, 255);
+    colorEditPtr[colorEditChannel] = (uint8_t)value;
+    calculateColourMultiplier();
+    return;
+  }
+
   uint8_t count = currentMenu->countFn ? currentMenu->countFn() : 0;
   if(count == 0){
     return;
@@ -549,12 +593,24 @@ void menuScroll(int8_t scroll){
 }
 
 void menuHandleConfirm(){
+  if(menuPage == MENU_COLOR && colorEditActive){
+    colorEditChannel = (colorEditChannel + 1) % 3; //cycle R,G,B
+    return;
+  }
+
   if(currentMenu && currentMenu->confirmFn){
     currentMenu->confirmFn(*currentMenu->selection);
   }
 }
 
 void menuHandleBack(){
+  if(menuPage == MENU_COLOR && colorEditActive){
+    colorEditActive = false;
+    colorEditChannel = 0;
+    colorEditPtr = nullptr;
+    return;
+  }
+
   if(menuPage == MENU_ROOT || !currentMenu || currentMenu->parent == MENU_NONE){
     exitMenu();
   } else {
@@ -580,6 +636,9 @@ void exitMenu(){
   profileSelectMenu = false;
   menuPage = MENU_NONE;
   currentMenu = nullptr;
+  colorEditActive = false;
+  colorEditChannel = 0;
+  colorEditPtr = nullptr;
   profileMinusStarted = false;
   profilePlusStarted = false;
   menuReentryGuard = true; //wait for release before allowing menu again

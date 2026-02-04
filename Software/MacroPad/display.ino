@@ -79,10 +79,10 @@ void drawProfileMenu(uint8_t selection){
 
 void drawRootMenu(uint8_t selection){
   u8g2.setFont(u8g2_font_5x7_tf);
-  const char *options[2] = {"Profile Menu", "RGB Modes"};
+  const char *options[3] = {"Profile Menu", "RGB Modes", "Colors"};
   int y = 26;
 
-  for(uint8_t i = 0; i < 2; i++){
+  for(uint8_t i = 0; i < 3; i++){
     if(i == selection){
       u8g2.drawBox(0, y - 8, u8g2.getStrWidth(options[i]) + 2, 9);
       u8g2.setDrawColor(0);
@@ -109,6 +109,33 @@ void drawRGBMenu(uint8_t selection){
       u8g2.setDrawColor(1);
     } else {
       u8g2.drawStr(1, y, modeName);
+    }
+    y += 10;
+  }
+}
+
+void drawColorMenu(uint8_t selection){
+  u8g2.setFont(u8g2_font_5x7_tf);
+  const char *labels[2] = {"Primary", "Secondary"};
+  const uint8_t *colors[2] = {primaryColour, secondaryColour};
+  int y = 18;
+
+  for(uint8_t i = 0; i < 2; i++){
+    char line[48];
+    char channelMarker = ' ';
+    if(menuPage == MENU_COLOR && colorEditActive && i == selection){
+      channelMarker = (colorEditChannel == 0) ? 'R' : (colorEditChannel == 1 ? 'G' : 'B');
+    }
+
+    snprintf(line, sizeof(line), "%s R%u G%u B%u %c", labels[i], colors[i][0], colors[i][1], colors[i][2], channelMarker);
+
+    if(i == selection){
+      u8g2.drawBox(0, y - 8, u8g2.getStrWidth(line) + 2, 9);
+      u8g2.setDrawColor(0);
+      u8g2.drawStr(1, y, line);
+      u8g2.setDrawColor(1);
+    } else {
+      u8g2.drawStr(1, y, line);
     }
     y += 10;
   }
