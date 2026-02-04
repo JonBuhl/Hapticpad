@@ -61,11 +61,11 @@ void drawActiveProfile(){ //Draws all icons and labels from config.xml for activ
   }
 }
 
-void drawProfileMenu(){
-  int y = 34 - activeProfile * 9;
+void drawProfileMenu(uint8_t selection){
+  int y = 34 - selection * 9;
   u8g2.setFont(u8g2_font_5x7_tf);
   for(int i = 0; i < totalProfiles; i++){
-    if(i == activeProfile){
+    if(i == selection){
       u8g2.drawBox(0, y - 8, u8g2.getStrWidth(profileNames[i]) + 2, 9);
       u8g2.setDrawColor(0);
       u8g2.drawStr( 1, y, profileNames[i]);

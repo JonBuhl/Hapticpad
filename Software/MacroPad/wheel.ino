@@ -77,25 +77,7 @@ void notchyWheel(){
     if(!profileSelectMenu){
       usb_mouse.mouseScroll(0, scroll, 0);
     } else {
-      if(menuPage == MENU_PROFILE){
-        if(scroll < 0 && activeProfile < totalProfiles - 1){
-          activeProfile++;
-        } else if(scroll > 0 && activeProfile > 0){
-          activeProfile--;
-        }
-      } else if(menuPage == MENU_ROOT){
-        if(scroll < 0 && menuRootSelection < 1){
-          menuRootSelection++;
-        } else if(scroll > 0 && menuRootSelection > 0){
-          menuRootSelection--;
-        }
-      } else if(menuPage == MENU_RGB){
-        if(scroll < 0 && rgbMenuSelection + 1 < ledModeMenuCount){
-          rgbMenuSelection++;
-        } else if(scroll > 0 && rgbMenuSelection > 0){
-          rgbMenuSelection--;
-        }
-      }
+      menuScroll(scroll);
     }
     target_angle = new_target_angle;
     motor.move(target_angle);

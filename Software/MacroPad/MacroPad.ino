@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include <SD.h>
 #include <FastLED.h>
+#include "menu.h"
 
 const unsigned char SD_Card [] PROGMEM = {
 	0xff, 0x01, 0x55, 0x01, 0x55, 0x01, 0xff, 0x01, 0x01, 0x03, 0x2d, 0x02, 0x45, 0x03, 0x49, 0x01, 
@@ -182,7 +183,15 @@ enum MenuPage : uint8_t {
 
 MenuPage menuPage = MENU_NONE;
 uint8_t menuRootSelection = 0; //0 = Profile menu, 1 = RGB menu
+uint8_t profileMenuSelection = 0;
 bool menuReentryGuard = false; //prevents immediate re-entry after exit until buttons released
+
+const MenuDefinition *currentMenu = nullptr;
+
+void enterMenu(MenuPage page);
+void exitMenu();
+void applyProfileSelection(uint8_t selection);
+void applyLedSelection(uint8_t selection);
 
 unsigned long buttonPressStart[buttonCount];
 bool menuButtonHandled[buttonCount];
@@ -433,11 +442,135 @@ void applyLedMode(uint8_t mode){
   resetLedAnimationState();
 }
 
+uint8_t rootMenuCount(){
+  return 2;
+}
+
+uint8_t profileMenuCount(){
+  return totalProfiles > 255 ? 255 : (uint8_t)totalProfiles;
+}
+
+uint8_t rgbMenuCount(){
+  return ledModeMenuCount;
+}
+
+void enterRootMenu(){
+  menuRootSelection = 0;
+}
+
+void enterProfileMenu(){
+  if(totalProfiles == 0){
+    profileMenuSelection = 0;
+    return;
+  }
+  if(activeProfile < (int)totalProfiles){
+    profileMenuSelection = activeProfile;
+  } else {
+    profileMenuSelection = totalProfiles - 1;
+  }
+}
+
+void enterRGBMenu(){
+  rgbMenuSelection = findLedMenuIndex(ledMode);
+}
+
+void confirmRoot(uint8_t selection){
+  if(selection == 0){
+    enterMenu(MENU_PROFILE);
+  } else {
+    enterMenu(MENU_RGB);
+  }
+}
+
+void confirmProfile(uint8_t selection){
+  applyProfileSelection(selection);
+}
+
+void confirmRGB(uint8_t selection){
+  applyLedSelection(selection);
+}
+
+const MenuDefinition menuDefinitions[] = {
+  {MENU_ROOT, MENU_NONE, &menuRootSelection, rootMenuCount, drawRootMenu, confirmRoot, enterRootMenu},
+  {MENU_PROFILE, MENU_ROOT, &profileMenuSelection, profileMenuCount, drawProfileMenu, confirmProfile, enterProfileMenu},
+  {MENU_RGB, MENU_ROOT, &rgbMenuSelection, rgbMenuCount, drawRGBMenu, confirmRGB, enterRGBMenu}
+};
+
+const MenuDefinition* getMenuDefinition(MenuPage page){
+  for(size_t i = 0; i < sizeof(menuDefinitions)/sizeof(menuDefinitions[0]); i++){
+    if(menuDefinitions[i].id == page){
+      return &menuDefinitions[i];
+    }
+  }
+  return nullptr;
+}
+
+void clampMenuSelection(const MenuDefinition *menu){
+  if(!menu || !menu->selection || !menu->countFn){
+    return;
+  }
+
+  uint8_t count = menu->countFn();
+  if(count == 0){
+    *menu->selection = 0;
+    return;
+  }
+
+  if(*menu->selection >= count){
+    *menu->selection = count - 1;
+  }
+}
+
+void enterMenu(MenuPage page){
+  currentMenu = getMenuDefinition(page);
+  menuPage = page;
+
+  if(currentMenu && currentMenu->enterFn){
+    currentMenu->enterFn();
+  }
+
+  clampMenuSelection(currentMenu);
+}
+
+void menuScroll(int8_t scroll){
+  if(!currentMenu || scroll == 0){
+    return;
+  }
+
+  uint8_t count = currentMenu->countFn ? currentMenu->countFn() : 0;
+  if(count == 0){
+    return;
+  }
+
+  int16_t selection = *currentMenu->selection;
+  selection += (scroll < 0 ? 1 : -1);
+  selection = constrain(selection, 0, count - 1);
+  *currentMenu->selection = (uint8_t)selection;
+}
+
+void menuHandleConfirm(){
+  if(currentMenu && currentMenu->confirmFn){
+    currentMenu->confirmFn(*currentMenu->selection);
+  }
+}
+
+void menuHandleBack(){
+  if(menuPage == MENU_ROOT || !currentMenu || currentMenu->parent == MENU_NONE){
+    exitMenu();
+  } else {
+    enterMenu(currentMenu->parent);
+  }
+}
+
+void renderCurrentMenu(){
+  if(currentMenu && currentMenu->renderFn){
+    currentMenu->renderFn(*currentMenu->selection);
+  }
+}
+
 void openMenu(){
   profileSelectMenu = true;
-  menuPage = MENU_ROOT;
-  menuRootSelection = 0;
-  rgbMenuSelection = findLedMenuIndex(ledMode);
+  enterMenu(MENU_ROOT);
   target_angle = round(encoder.getAngle() / angle_step) * angle_step;
   new_target_angle = target_angle;
   wheelModeChanged = true;
@@ -446,13 +579,24 @@ void openMenu(){
 void exitMenu(){
   profileSelectMenu = false;
   menuPage = MENU_NONE;
+  currentMenu = nullptr;
   profileMinusStarted = false;
   profilePlusStarted = false;
   menuReentryGuard = true; //wait for release before allowing menu again
   wheelModeChanged = true;
 }
 
-void applyProfileSelection(){
+void applyProfileSelection(uint8_t selection){
+  if(totalProfiles == 0){
+    exitMenu();
+    return;
+  }
+
+  if(selection >= totalProfiles){
+    selection = totalProfiles - 1;
+  }
+
+  activeProfile = selection;
   loadProfile("/config.xml", activeProfile);
   storeLastProfile();
   Serial.print("Stored last profile = ");
@@ -461,16 +605,17 @@ void applyProfileSelection(){
   exitMenu();
 }
 
-void applyLedSelection(){
+void applyLedSelection(uint8_t selection){
   if(ledModeMenuCount == 0){
     return;
   }
 
-  if(rgbMenuSelection >= ledModeMenuCount){
-    rgbMenuSelection = 0;
+  if(selection >= ledModeMenuCount){
+    selection = 0;
   }
 
-  uint8_t selectedMode = ledModeMenu[rgbMenuSelection];
+  rgbMenuSelection = selection;
+  uint8_t selectedMode = ledModeMenu[selection];
   applyLedMode(selectedMode);
   storeLastLEDMode();
   exitMenu();
@@ -480,30 +625,13 @@ void handleMenuButtons(){
   // Button 6 = confirm/enter
   if(lastButtonState[6] && !menuButtonHandled[6]){
     menuButtonHandled[6] = true;
-
-    if(menuPage == MENU_ROOT){
-      if(menuRootSelection == 0){
-        menuPage = MENU_PROFILE;
-      } else {
-        menuPage = MENU_RGB;
-        rgbMenuSelection = findLedMenuIndex(ledMode);
-      }
-    } else if(menuPage == MENU_PROFILE){
-      applyProfileSelection();
-    } else if(menuPage == MENU_RGB){
-      applyLedSelection();
-    }
+    menuHandleConfirm();
   }
 
   // Button 7 = back/exit
   if(lastButtonState[7] && !menuButtonHandled[7]){
     menuButtonHandled[7] = true;
-
-    if(menuPage == MENU_ROOT){
-      exitMenu();
-    } else {
-      menuPage = MENU_ROOT;
-    }
+    menuHandleBack();
   }
 }
 
@@ -551,13 +679,7 @@ void loop1() {
         drawGrid();
         drawActiveProfile();
       } else {
-        if(menuPage == MENU_ROOT){
-          drawRootMenu(menuRootSelection);
-        } else if(menuPage == MENU_PROFILE){
-          drawProfileMenu();
-        } else if(menuPage == MENU_RGB){
-          drawRGBMenu(rgbMenuSelection);
-        }
+        renderCurrentMenu();
       }
 
       encoderAngle = encoder.getAngle();
