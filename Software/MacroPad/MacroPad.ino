@@ -2,6 +2,7 @@
 #include <U8g2lib.h>
 #include <SimpleFOC.h>
 #include <Adafruit_TinyUSB.h>
+#include <SdFat.h>
 #include <SPI.h>
 #include <SD.h>
 #include <FastLED.h>
@@ -99,6 +100,13 @@ const int _CS = 5;
 const int _SCK = 2;
 
 bool sdDetected = false;
+
+Adafruit_USBD_MSC usb_msc;
+SdFat usbStorageFat;
+SdSpiConfig usbStorageConfig(_CS, DEDICATED_SPI, SD_SCK_MHZ(12), &SPI);
+uint32_t usbStorageBlockCount = 0;
+bool usbStorageMode = false;
+unsigned long usbStorageButtonTimer = 0;
 
 U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 28, 22, 6, 7, 8);
 
@@ -200,6 +208,11 @@ void enterMenu(MenuPage page);
 void exitMenu();
 void applyProfileSelection(uint8_t selection);
 void applyLedSelection(uint8_t selection);
+bool enterUsbStorageMode();
+void exitUsbStorageMode();
+void toggleUsbStorageMode();
+void setupUsbStorage();
+void drawUsbStorageScreen();
 
 unsigned long buttonPressStart[buttonCount];
 bool menuButtonHandled[buttonCount];
@@ -226,6 +239,32 @@ uint8_t const desc_mouse_report[] =
 
 Adafruit_USBD_HID usb_keyboard(desc_keyboard_report, sizeof(desc_keyboard_report), HID_ITF_PROTOCOL_KEYBOARD, 2, false);
 Adafruit_USBD_HID usb_mouse(desc_mouse_report, sizeof(desc_mouse_report), HID_ITF_PROTOCOL_MOUSE, 2, false);
+
+int32_t usbStorageReadCb(uint32_t lba, void* buffer, uint32_t bufsize) {
+  if(!usbStorageMode || usbStorageBlockCount == 0 || !usbStorageFat.card()){
+    return -1;
+  }
+
+  uint32_t blockCount = bufsize / 512;
+  return usbStorageFat.card()->readSectors(lba, static_cast<uint8_t*>(buffer), blockCount) ? (int32_t)bufsize : -1;
+}
+
+int32_t usbStorageWriteCb(uint32_t lba, uint8_t* buffer, uint32_t bufsize) {
+  if(!usbStorageMode || usbStorageBlockCount == 0 || !usbStorageFat.card()){
+    return -1;
+  }
+
+  uint32_t blockCount = bufsize / 512;
+  return usbStorageFat.card()->writeSectors(lba, buffer, blockCount) ? (int32_t)bufsize : -1;
+}
+
+void usbStorageFlushCb(void) {
+  if(!usbStorageMode || !usbStorageFat.card()){
+    return;
+  }
+
+  usbStorageFat.card()->syncDevice();
+}
 
 void setup() { //Core 0
   driver.voltage_power_supply = 5;
@@ -277,6 +316,7 @@ void setup1(){ //core 1
   }
 
   initialiseSD();
+  setupUsbStorage();
 
   loadSettings("/config.xml");
   readLastState();
@@ -304,6 +344,20 @@ void buttonRead(){ //Read button inputs and set state arrays.
       menuButtonHandled[i] = false;
     }
   }
+
+  if(usbStorageMode){
+    if(lastButtonState[6] && lastButtonState[7]){
+      if(usbStorageButtonTimer == 0){
+        usbStorageButtonTimer = millis();
+      } else if(usbStorageButtonTimer + 2000 < millis()){
+        exitUsbStorageMode();
+      }
+    } else {
+      usbStorageButtonTimer = 0;
+    }
+    return;
+  }
+
   if(profileSelectMenu){
     handleMenuButtons();
   }
@@ -407,8 +461,82 @@ void initialiseSD(){
   loadButtonIcons();
 }
 
+void setupUsbStorage(){
+  usb_msc.setID("CNCDan", "HapticPad SD", "1.0");
+  usb_msc.setReadWriteCallback(usbStorageReadCb, usbStorageWriteCb, usbStorageFlushCb);
+  // Set a safe default; real capacity is updated when entering storage mode
+  usb_msc.setCapacity(usbStorageBlockCount == 0 ? 8 : usbStorageBlockCount, 512);
+  usb_msc.setUnitReady(false);
+  usb_msc.begin();
+}
+
+bool enterUsbStorageMode(){
+  if(usbStorageMode){
+    return true;
+  }
+
+  storeLastState();
+  SD.end(true);
+  delay(5);
+
+  if(!usbStorageFat.begin(usbStorageConfig)){
+    initialiseSD();
+    return false;
+  }
+
+  if(usbStorageBlockCount == 0 && usbStorageFat.card()){
+    usbStorageBlockCount = usbStorageFat.card()->sectorCount();
+  }
+
+  if(usbStorageBlockCount == 0){
+    if(usbStorageFat.card()){
+      usbStorageFat.card()->syncDevice();
+    }
+    initialiseSD();
+    return false;
+  }
+
+  usb_msc.setCapacity(usbStorageBlockCount, 512);
+  usb_msc.setUnitReady(true);
+  TinyUSBDevice.detach();
+  delay(30);
+  TinyUSBDevice.attach();
+  usbStorageMode = true;
+  sdDetected = false;
+  profileSelectMenu = false;
+  menuPage = MENU_NONE;
+  currentMenu = nullptr;
+  return true;
+}
+
+void exitUsbStorageMode(){
+  if(!usbStorageMode){
+    return;
+  }
+
+  usb_msc.setUnitReady(false);
+  usbStorageMode = false;
+  usbStorageButtonTimer = 0;
+  if(usbStorageFat.card()){
+    usbStorageFat.card()->syncDevice();
+  }
+
+  initialiseSD();
+  totalProfiles = countProfiles("/config.xml");
+  if(activeProfile >= (int)totalProfiles){
+    activeProfile = totalProfiles > 0 ? (int)totalProfiles - 1 : 0;
+  }
+  loadSettings("/config.xml");
+  loadProfile("/config.xml", activeProfile);
+  loadButtonIcons();
+}
+
 void loop() {
   motor.loopFOC();
+
+  if(usbStorageMode){
+    return;
+  }
 
   if(lastWheelMode != wheelMode){
     wheelModeChanged = true;
@@ -459,7 +587,7 @@ void applyLedMode(uint8_t mode){
 }
 
 uint8_t rootMenuCount(){
-  return 3;
+  return 4;
 }
 
 uint8_t profileMenuCount(){
@@ -513,6 +641,9 @@ void confirmRoot(uint8_t selection){
     break;
   case 2:
     enterMenu(MENU_COLOR);
+    break;
+  case 3:
+    toggleUsbStorageMode();
     break;
   default:
     break;
@@ -704,6 +835,14 @@ void applyLedSelection(uint8_t selection){
   exitMenu();
 }
 
+void toggleUsbStorageMode(){
+  if(usbStorageMode){
+    exitUsbStorageMode();
+  } else {
+    enterUsbStorageMode();
+  }
+}
+
 void handleMenuButtons(){
   // Button 6 = confirm/enter
   if(lastButtonState[6] && !menuButtonHandled[6]){
@@ -737,8 +876,19 @@ void macroOutput(int button){
 }
 
 void loop1() {
-  u8g2.firstPage();
   buttonRead();
+
+  if(usbStorageMode){
+    TinyUSBDevice.task();
+    u8g2.firstPage();
+    do {
+      drawUsbStorageScreen();
+    } while ( u8g2.nextPage() );
+    delay(20);
+    return;
+  }
+
+  u8g2.firstPage();
   if(ledTimer + ledSpeed < millis()){
     if(ledMode == 0){
       haloLED();

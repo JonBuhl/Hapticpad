@@ -79,17 +79,20 @@ void drawProfileMenu(uint8_t selection){
 
 void drawRootMenu(uint8_t selection){
   u8g2.setFont(u8g2_font_5x7_tf);
-  const char *options[3] = {"Profile Menu", "RGB Modes", "Colors"};
+  char storageLabel[24];
+  snprintf(storageLabel, sizeof(storageLabel), "USB Storage %s", usbStorageMode ? "On" : "Off");
+  const char *options[4] = {"Profile Menu", "RGB Modes", "Colors", storageLabel};
   int y = 26 - selection * 12; // keep selected entry anchored while list scrolls
 
-  for(uint8_t i = 0; i < 3; i++){
+  for(uint8_t i = 0; i < 4; i++){
+    const char *label = options[i];
     if(i == selection){
-      u8g2.drawBox(0, y - 8, u8g2.getStrWidth(options[i]) + 2, 9);
+      u8g2.drawBox(0, y - 8, u8g2.getStrWidth(label) + 2, 9);
       u8g2.setDrawColor(0);
-      u8g2.drawStr(1, y, options[i]);
+      u8g2.drawStr(1, y, label);
       u8g2.setDrawColor(1);
     } else if(y > 0){
-      u8g2.drawStr(1, y, options[i]);
+      u8g2.drawStr(1, y, label);
     }
     y += 12;
   }
@@ -139,4 +142,12 @@ void drawColorMenu(uint8_t selection){
     }
     y += 10;
   }
+}
+
+void drawUsbStorageScreen(){
+  u8g2.setFont(u8g2_font_5x7_tf);
+  u8g2.drawStr(10, 18, "USB Storage Mode");
+  u8g2.drawStr(10, 32, "SD shared over USB");
+  u8g2.drawStr(10, 46, "Eject on PC, then");
+  u8g2.drawStr(10, 60, "hold both menu btns");
 }

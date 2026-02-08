@@ -151,3 +151,7 @@ There will be 6 of these sections per profile. Each action has two values, the f
 Label is simply the name that will appear on screen for that button.
 
 And that's it! just replicate that first example profile as many times as you like (up to 256 times, anyway) and each one will create a new profile that you can store your macros in.
+
+
+
+& "C:\Program Files\Arduino IDE\resources\app\lib\backend\resources\arduino-cli.exe" compile --fqbn rp2040:rp2040:waveshare_rp2040_plus:usbstack=tinyusb --output-dir "build" "Software/MacroPad"
