@@ -97,11 +97,16 @@ void wheelActionCheck(){
   if(wheelAction != 0 && !wheelKeyPressed){
     int modifier = checkModifiers(wheelAction);
     uint8_t keycode[6] = { 0 };
+    uint16_t consumer = convertConsumerKeycode(wheelAction);
+    if(consumer != 0){
+      sendConsumerKey(consumer);
+      return;
+    }
     if(modifier != 0){
-      usb_keyboard.keyboardReport(0, modifier, 0);
+      usb_keyboard.keyboardReport(REPORT_ID_KEYBOARD, modifier, 0);
     } else {
       keycode[0] = convertKeycode(wheelAction);
-      usb_keyboard.keyboardReport(0, 0, keycode);
+      usb_keyboard.keyboardReport(REPORT_ID_KEYBOARD, 0, keycode);
     }
     wheelKeyPressed = true;
     delay(10); //Slight delay to ensure keyboard report has been sent before mouse move
@@ -110,7 +115,7 @@ void wheelActionCheck(){
 
 void cancelWheelAction(){
   if(wheelKeyPressed && wheelKeyTimer + 100 < millis()){
-    usb_keyboard.keyboardReport(0, 0, 0);
+    usb_keyboard.keyboardReport(REPORT_ID_KEYBOARD, 0, 0);
     wheelKeyPressed = false;
   }
 }

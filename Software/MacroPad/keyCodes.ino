@@ -180,12 +180,6 @@ int convertKeycode(int input){ //Convert keycodeds from: https://keycode-visuali
       return HID_KEY_NUM_LOCK;
     case 145:
       return HID_KEY_SCROLL_LOCK;
-    case 173:
-      return HID_KEY_MUTE;
-    case 174:
-      return HID_KEY_VOLUME_DOWN;
-    case 175:
-      return HID_KEY_VOLUME_UP;
     case 186:
       return HID_KEY_SEMICOLON;
     case 187:

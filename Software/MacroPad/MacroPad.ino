@@ -227,9 +227,15 @@ uint16_t totalProfiles = 0;
 
 File root;
 
-uint8_t const desc_keyboard_report[] =
+enum {
+  REPORT_ID_KEYBOARD = 1,
+  REPORT_ID_CONSUMER,
+};
+
+uint8_t const desc_hid_report[] =
 {
-  TUD_HID_REPORT_DESC_KEYBOARD()
+  TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(REPORT_ID_KEYBOARD)),
+  TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(REPORT_ID_CONSUMER))
 };
 
 uint8_t const desc_mouse_report[] =
@@ -237,7 +243,7 @@ uint8_t const desc_mouse_report[] =
   TUD_HID_REPORT_DESC_MOUSE()
 };
 
-Adafruit_USBD_HID usb_keyboard(desc_keyboard_report, sizeof(desc_keyboard_report), HID_ITF_PROTOCOL_KEYBOARD, 2, false);
+Adafruit_USBD_HID usb_keyboard(desc_hid_report, sizeof(desc_hid_report), HID_ITF_PROTOCOL_NONE, 2, false);
 Adafruit_USBD_HID usb_mouse(desc_mouse_report, sizeof(desc_mouse_report), HID_ITF_PROTOCOL_MOUSE, 2, false);
 
 int32_t usbStorageReadCb(uint32_t lba, void* buffer, uint32_t bufsize) {
@@ -431,7 +437,7 @@ void buttonRead(){ //Read button inputs and set state arrays.
   }
 
   if(keyPressed && keyTimer + 50 < millis()){
-    usb_keyboard.keyboardRelease(0);
+    usb_keyboard.keyboardRelease(REPORT_ID_KEYBOARD);
     keyPressed = false;
   }
 }
@@ -857,6 +863,26 @@ void handleMenuButtons(){
   }
 }
 
+uint16_t convertConsumerKeycode(int input){
+  switch(input){
+    case 173:
+      return HID_USAGE_CONSUMER_MUTE;
+    case 174:
+      return HID_USAGE_CONSUMER_VOLUME_DECREMENT;
+    case 175:
+      return HID_USAGE_CONSUMER_VOLUME_INCREMENT;
+  }
+  return 0;
+}
+
+void sendConsumerKey(uint16_t usage){
+  uint16_t report = usage;
+  usb_keyboard.sendReport(REPORT_ID_CONSUMER, &report, sizeof(report));
+  delay(5);
+  report = 0;
+  usb_keyboard.sendReport(REPORT_ID_CONSUMER, &report, sizeof(report));
+}
+
 void macroOutput(int button){
   uint8_t keycode[6] = { 0 };
   int modifier = 0;
@@ -864,12 +890,18 @@ void macroOutput(int button){
   for(int i = 0; i < 3; i++){
     delay(macroDelay[button][i]);
     if(macroAction[button][i] != 0){
+      uint16_t consumer = convertConsumerKeycode(macroAction[button][i]);
+      if(consumer != 0){
+        sendConsumerKey(consumer);
+        continue;
+      }
+
       keycode[0] = convertKeycode(macroAction[button][i]);
       if(checkModifiers(macroAction[button][i]) != 0){
         modifier = checkModifiers(macroAction[button][i]);
         Serial.println("Modifier Detected");
       } else {
-        usb_keyboard.keyboardReport(0, modifier, keycode);
+        usb_keyboard.keyboardReport(REPORT_ID_KEYBOARD, modifier, keycode);
       }
     }
   }
