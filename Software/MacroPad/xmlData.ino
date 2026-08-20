@@ -10,11 +10,29 @@ uint32_t read32(File &f) {
 }
 
 uint8_t parseWheelMode(const char *mode) {
-  if (strcmp(mode, "Clicky") == 0)   return WHEEL_CLICKY;
-  if (strcmp(mode, "Twist") == 0)    return WHEEL_TWIST;
-  if (strcmp(mode, "Momentum") == 0) return WHEEL_MOMENTUM;
-  if (strcmp(mode, "Free") == 0)     return WHEEL_FREE_SCROLL;
+  for (uint8_t i = 0; i < WHEEL_MODE_COUNT; i++) {
+    if (strcmp(mode, wheelModeNames[i]) == 0) return i;
+  }
   return WHEEL_CLICKY;
+}
+
+// Reads a comma separated list of detent positions, e.g. "0,6,12,18".
+uint8_t parseDetentPositions(const char *text, uint8_t *positions, uint8_t maxCount) {
+  uint8_t count = 0;
+  const char *cursor = text;
+
+  while (count < maxCount && *cursor) {
+    while (*cursor && (*cursor < '0' || *cursor > '9')) cursor++;
+    if (!*cursor) break;
+
+    long value = strtol(cursor, (char **)&cursor, 10);
+    if (value >= 0 && value < 256) {
+      positions[count] = (uint8_t)value;
+      count++;
+    }
+  }
+
+  return count;
 }
 
 uint8_t parseLEDMode(const char *mode) {
@@ -129,7 +147,7 @@ bool loadSettings(const char *filename){
   }
 
   // --- LED Mode ---
-  char buffer[16];
+  char buffer[64];
   file.find("<LED_Mode>");
   size_t len = file.readBytesUntil('<', buffer, sizeof(buffer) - 1);
   buffer[len] = '\0';
@@ -185,23 +203,90 @@ bool loadSettings(const char *filename){
     }
   }
 
-  file.find("<Clicky_P>");
-  Clicky_P = file.parseFloat();
-  file.find("<Clicky_I>");
-  Clicky_I = file.parseFloat();
-  file.find("<Twist_P>");
-  Twist_P = file.parseFloat();
-  file.find("<Twist_I>");
-  Twist_I = file.parseFloat();
-  file.find("<Momentum_P>");
-  Momentum_P = file.parseFloat();
-  file.find("<Momentum_I>");
-  Momentum_I = file.parseFloat();
+  // Legacy PID tuning. Clicky and Twist now use the haptic model below, these
+  // are still read so older config files keep loading. Momentum still uses them.
+  if(file.find("<Clicky_P>"))   Clicky_P = file.parseFloat();
+  if(file.find("<Clicky_I>"))   Clicky_I = file.parseFloat();
+  if(file.find("<Twist_P>"))    Twist_P = file.parseFloat();
+  if(file.find("<Twist_I>"))    Twist_I = file.parseFloat();
+  if(file.find("<Momentum_P>")) Momentum_P = file.parseFloat();
+  if(file.find("<Momentum_I>")) Momentum_I = file.parseFloat();
+
+  // --- Haptic settings ---
+  // These are all optional. The tags are searched for in file order, so a
+  // config without them simply keeps the defaults from haptics.h.
+  if(file.find("<Haptic_VoltageLimit>"))    hapticVoltageLimit = file.parseFloat();
+  if(file.find("<Haptic_DetentStrength>")){
+    hapticDetentStrength = file.parseFloat();
+    clickyStrength = hapticDetentStrength; //per mode tag below can still override
+  }
+  if(file.find("<Haptic_EndstopStrength>")) hapticEndstopStrength = file.parseFloat();
+  if(file.find("<Haptic_SnapPoint>"))       hapticSnapPoint = file.parseFloat();
+  if(file.find("<Haptic_Range>"))           hapticRange = (uint8_t)file.parseInt();
+
+  if(file.find("<Haptic_MagneticPositions>")){
+    len = file.readBytesUntil('<', buffer, sizeof(buffer) - 1);
+    buffer[len] = '\0';
+    uint8_t count = parseDetentPositions(buffer, hapticDetentPositions, HAPTIC_MAX_DETENT_POSITIONS);
+    if(count > 0){
+      hapticDetentPositionCount = count;
+    }
+  }
+
+  if(file.find("<Clicky_Detents>"))    clickyDetents = (uint16_t)file.parseInt();
+  if(file.find("<Clicky_Strength>"))   clickyStrength = file.parseFloat();
+  if(file.find("<Twist_Strength>"))    twistStrength = file.parseFloat();
+  if(file.find("<Twist_Range>"))       twistRangeDeg = file.parseFloat();
+  if(file.find("<Friction_Strength>")) frictionStrength = file.parseFloat();
+  if(file.find("<Snap_Strength>"))     snapStrength = file.parseFloat();
+  if(file.find("<Snap_Detents>"))      snapDetents = (uint16_t)file.parseInt();
+  if(file.find("<Snap_Point>"))        snapPoint = file.parseFloat();
+  if(file.find("<Magnetic_Strength>")) magneticStrength = file.parseFloat();
+  if(file.find("<Magnetic_Detents>"))  magneticDetents = (uint16_t)file.parseInt();
+
+  validateHapticSettings();
+
+  // core 0 only rebuilds the haptic model when the wheel mode changes, so poke
+  // it here or freshly loaded detent counts and strengths never take effect.
+  wheelModeChanged = true;
 
   rgbMenuSelection = findLedMenuIndex(ledMode);
 
   file.close();
   return true;
+}
+
+// Keeps a hand edited config from asking the motor for something silly.
+void validateHapticSettings(){
+  hapticVoltageLimit   = constrain(hapticVoltageLimit, 0.5f, 5.0f);
+  hapticDetentStrength = constrain(hapticDetentStrength, 0.0f, 5.0f);
+  hapticEndstopStrength = constrain(hapticEndstopStrength, 0.0f, 5.0f);
+  hapticSnapPoint      = constrain(hapticSnapPoint, HAPTIC_MIN_SNAP_POINT, 2.0f);
+  snapPoint            = constrain(snapPoint, HAPTIC_MIN_SNAP_POINT, 2.0f);
+
+  clickyStrength   = constrain(clickyStrength, 0.0f, 5.0f);
+  twistStrength    = constrain(twistStrength, 0.0f, 5.0f);
+  frictionStrength = constrain(frictionStrength, 0.0f, 5.0f);
+  snapStrength     = constrain(snapStrength, 0.0f, 5.0f);
+  magneticStrength = constrain(magneticStrength, 0.0f, 5.0f);
+
+  twistRangeDeg = constrain(twistRangeDeg, 5.0f, 180.0f);
+
+  clickyDetents   = constrain(clickyDetents, 4, 400);
+  snapDetents     = constrain(snapDetents, 4, 400);
+  magneticDetents = constrain(magneticDetents, 4, 255);
+
+  if(hapticRange < 2) hapticRange = 2;
+
+  // Drop any magnetic detent positions that fall outside the magnetic range.
+  uint8_t kept = 0;
+  for(uint8_t i = 0; i < hapticDetentPositionCount; i++){
+    if(hapticDetentPositions[i] < magneticDetents){
+      hapticDetentPositions[kept] = hapticDetentPositions[i];
+      kept++;
+    }
+  }
+  hapticDetentPositionCount = kept;
 }
 
 bool loadBMP16x16(const char *filename, uint8_t icon[16][2]) {

@@ -13,7 +13,8 @@ A 6 button macropad with a display for button labels and a mouse knob with hapti
 - Easy XML configuration, no special drivers required!
 - Macro button combinations can be configured with up to 3 simultaneous buttons or 3 seperate button presses with configurable delays between them.
 - Micro SD Storage for button labels and config files.
-- Haptic feedback mouse wheel with three different modes. Clicky, Twist and Momentum
+- Haptic feedback mouse wheel with eight different modes. Clicky, Twist, Momentum, Free, Endstop, Friction, Snap and Magnetic. The detent, endstop and snap behaviour is modelled on the [SmartKnob](https://github.com/scottbez1/smartknob) project and is configurable in strength and feel.
+- A "Haptic Test" page in the menu lets you feel every mode without changing profile.
 - RGB ring with configurable colours and 5 different display modes. Halo, Bands, Breath, Rainbow, Solid and Off.
 - Easy profile switching with up down profile buttons or profile list display.
 - The Last profile is stored to the SD card so the macro pad will start on whichever profile was last active.
@@ -131,10 +132,48 @@ Breath, Bands, Halo, Rainbow, Solid, Off
 
 The motor tuning for the printed version of the wheel should be pretty good, so try with my default P and I values first before you do any tuning. I've left out D from the tuning options as it doesn't seem to be needed for this type of feedback and just makes tuning more complex.
 
+`<Momentum_P>` and `<Momentum_I>` still tune Momentum mode. `<Clicky_P>`, `<Clicky_I>`, `<Twist_P>` and `<Twist_I>` are now unused because Clicky and Twist run on the haptic model described below, but they are still read so older config files keep loading unchanged.
+
+#### Haptic settings
+
+The wheel is driven in torque mode by a software model of virtual detents and endstops, in the same style as the [SmartKnob](https://github.com/scottbez1/smartknob) project. Every tag below is optional; leave it out and the default is used, so an old config file will still work. If you do add them, keep them in the order shown here (the parser reads the file from top to bottom).
+
+| Tag | Default | What it does |
+| --- | --- | --- |
+| `<Haptic_VoltageLimit>` | 3.0 | Motor voltage ceiling, i.e. the overall strength of the feedback. The safe range is 0.5 - 5.0. Raise it for firmer endstops, but the motor will run warmer. |
+| `<Haptic_DetentStrength>` | 2.5 | Default detent strength. Also sets the Clicky strength unless `<Clicky_Strength>` follows it. |
+| `<Haptic_EndstopStrength>` | 3.0 | How hard the wall is at the ends of a bounded range (Endstop and Magnetic modes). |
+| `<Haptic_SnapPoint>` | 1.1 | How far, in detent widths, the wheel has to travel before it clicks over to the next position. Above 1.0 gives a firm over centre click, near 0.55 makes it snap to the nearest position. Values below 0.55 are clamped. |
+| `<Haptic_Range>` | 24 | Number of positions between the two endstops in Endstop mode. |
+| `<Haptic_MagneticPositions>` | 0,6,12,18 | Comma separated list (up to 16) of the positions that get a detent in Magnetic mode. Everything in between is smooth. Positions outside `<Magnetic_Detents>` are ignored. |
+| `<Clicky_Detents>` | 40 | Detents per revolution in Clicky mode. Also sets the position pitch of Endstop mode. |
+| `<Clicky_Strength>` | 2.5 | Detent strength in Clicky mode. |
+| `<Twist_Strength>` | 2.0 | Strength of the spring that returns the wheel to centre in Twist mode. |
+| `<Twist_Range>` | 60 | Width in degrees of the Twist deflection range. |
+| `<Friction_Strength>` | 1.0 | Amount of constant drag in Friction mode. |
+| `<Snap_Strength>` | 3.0 | Detent strength in Snap mode. |
+| `<Snap_Detents>` | 20 | Positions per revolution in Snap mode. |
+| `<Snap_Point>` | 0.55 | Snap point for Snap mode only. Keep it near 0.55 so the wheel is always driven to the nearest position. |
+| `<Magnetic_Strength>` | 2.5 | Detent strength at the magnetic detent positions. |
+| `<Magnetic_Detents>` | 24 | Total number of positions in the Magnetic range. |
+
 In the `<Profiles>` tag is where each profile is stored.
 
 Each profile starts off with a name value assigned like this: `<Profile name="Solidworks">`
-Then, there is a `<WheelMode>` and `<WheelKey>` tag. `<WheelKey>` can be any key value from this website https://keycode-visualizer.netlify.app/ and will be held down when the wheel is moving. `<WheelMode>` can only be one of three things: Clicky, Twist or Momentum. Again, these have to be exact so copy and paste from here to ensure they work.
+Then, there is a `<WheelMode>` and `<WheelKey>` tag. `<WheelKey>` can be any key value from this website https://keycode-visualizer.netlify.app/ and will be held down when the wheel is moving. `<WheelMode>` can be one of eight things. Again, these have to be exact so copy and paste from here to ensure they work:
+
+- **Clicky** - virtual detents at the standard pitch, unbounded, one scroll tick per detent.
+- **Twist** - spring loaded, returns to centre, scroll speed rises with how far you deflect it.
+- **Momentum** - free spinning with a momentum boost, continuous scrolling.
+- **Free** - motor off, continuous scrolling.
+- **Endstop** - free motion inside a bounded range with a hard stop at both ends, one scroll tick per position.
+- **Friction** - constant resistance while turning, continuous scrolling.
+- **Snap** - detents that pull the wheel into the nearest position, one scroll tick per position.
+- **Magnetic** - detents only at the positions listed in `<Haptic_MagneticPositions>`, smooth in between, one scroll tick per position.
+
+### Haptic Test page
+
+Hold either of the menu buttons to open the menu and pick "Haptic Test". That page lists every wheel mode; confirming one runs its motor behaviour so you can feel it while you tune the settings above. Scrolling and the wheel key are suppressed while a test is running, so nothing is sent to the PC. Press BACK to return to the list, and BACK again to leave the page.
 
 Next is a `<MacroButtons>` tag that holds all of our Macro buttons for the profile.
 

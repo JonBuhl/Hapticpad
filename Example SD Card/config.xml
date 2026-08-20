@@ -18,6 +18,23 @@
     <Twist_I>0.2</Twist_I>
     <Momentum_P>0.3</Momentum_P>
     <Momentum_I>0</Momentum_I>
+    <!-- Haptic (SmartKnob style) settings. All optional, defaults shown. -->
+    <Haptic_VoltageLimit>3.0</Haptic_VoltageLimit>
+    <Haptic_DetentStrength>2.5</Haptic_DetentStrength>
+    <Haptic_EndstopStrength>3.0</Haptic_EndstopStrength>
+    <Haptic_SnapPoint>1.1</Haptic_SnapPoint>
+    <Haptic_Range>24</Haptic_Range>
+    <Haptic_MagneticPositions>0,6,12,18</Haptic_MagneticPositions>
+    <Clicky_Detents>40</Clicky_Detents>
+    <Clicky_Strength>2.5</Clicky_Strength>
+    <Twist_Strength>2.0</Twist_Strength>
+    <Twist_Range>60</Twist_Range>
+    <Friction_Strength>1.0</Friction_Strength>
+    <Snap_Strength>3.0</Snap_Strength>
+    <Snap_Detents>20</Snap_Detents>
+    <Snap_Point>0.55</Snap_Point>
+    <Magnetic_Strength>2.5</Magnetic_Strength>
+    <Magnetic_Detents>24</Magnetic_Detents>
   </Settings>
   <Profiles>
 
