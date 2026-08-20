@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
   <Settings>
-    <LED_Mode>Static</LED_Mode>
+    <LED_Mode>Solid</LED_Mode>
     <LED_Primary>255,0,0</LED_Primary>
-    <LED_Secondary>0,0,0</LED_Secondary>
+    <LED_Secondary>0,0,255</LED_Secondary>
     <LED_Menu>
       <Mode>Halo</Mode>
       <Mode>Breath</Mode>
@@ -18,365 +18,76 @@
     <Twist_I>0.2</Twist_I>
     <Momentum_P>0.3</Momentum_P>
     <Momentum_I>0</Momentum_I>
-    <!-- Haptic (SmartKnob style) settings. All optional, defaults shown. -->
-    <Haptic_VoltageLimit>3.0</Haptic_VoltageLimit>
+    <Haptic_VoltageLimit>3</Haptic_VoltageLimit>
     <Haptic_DetentStrength>2.5</Haptic_DetentStrength>
-    <Haptic_EndstopStrength>3.0</Haptic_EndstopStrength>
+    <Haptic_EndstopStrength>3</Haptic_EndstopStrength>
     <Haptic_SnapPoint>1.1</Haptic_SnapPoint>
     <Haptic_Range>24</Haptic_Range>
     <Haptic_MagneticPositions>0,6,12,18</Haptic_MagneticPositions>
     <Clicky_Detents>40</Clicky_Detents>
     <Clicky_Strength>2.5</Clicky_Strength>
-    <Twist_Strength>2.0</Twist_Strength>
+    <Twist_Strength>2</Twist_Strength>
     <Twist_Range>60</Twist_Range>
-    <Friction_Strength>1.0</Friction_Strength>
-    <Snap_Strength>3.0</Snap_Strength>
+    <Friction_Strength>1</Friction_Strength>
+    <Snap_Strength>3</Snap_Strength>
     <Snap_Detents>20</Snap_Detents>
     <Snap_Point>0.55</Snap_Point>
     <Magnetic_Strength>2.5</Magnetic_Strength>
     <Magnetic_Detents>24</Magnetic_Detents>
   </Settings>
   <Profiles>
-    <Profile name="Free">
-      <WheelMode>Free</WheelMode>
-      <WheelKey>0</WheelKey>
-      <MacroButtons>
-        <MacroButton>
-          <Action>0,49</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 1</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,50</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 2</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,51</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 3</Label>
-	      </MacroButton>
-        <MacroButton>
-	        <Action>0,52</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 4</Label>
-	      </MacroButton>
-        <MacroButton>
-	        <Action>0,53</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 5</Label>
-	      </MacroButton>
-        <MacroButton>
-	        <Action>0,54</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 6</Label>
-	      </MacroButton>
-      </MacroButtons>
-    </Profile>
-    <Profile name="Clicky">
+    <Profile name="Desktop">
       <WheelMode>Clicky</WheelMode>
       <WheelKey>0</WheelKey>
       <MacroButtons>
         <MacroButton>
-          <Action>0,49</Action>
+          <Action>0,17</Action>
+          <Action>0,67</Action>
           <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 1</Label>
+          <Label>Copy</Label>
         </MacroButton>
         <MacroButton>
-          <Action>0,50</Action>
+          <Action>0,17</Action>
+          <Action>0,86</Action>
           <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 2</Label>
+          <Label>Paste</Label>
         </MacroButton>
         <MacroButton>
-          <Action>0,51</Action>
+          <Action>0,17</Action>
+          <Action>0,88</Action>
           <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 3</Label>
-	      </MacroButton>
+          <Label>Cut</Label>
+        </MacroButton>
         <MacroButton>
-	        <Action>0,52</Action>
+          <Action>0,17</Action>
+          <Action>0,90</Action>
           <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 4</Label>
-	      </MacroButton>
+          <Label>Undo</Label>
+        </MacroButton>
         <MacroButton>
-	        <Action>0,53</Action>
+          <Action>0,17</Action>
+          <Action>0,89</Action>
           <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 5</Label>
-	      </MacroButton>
+          <Label>Redo</Label>
+        </MacroButton>
         <MacroButton>
-	        <Action>0,54</Action>
+          <Action>0,17</Action>
+          <Action>0,70</Action>
           <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 6</Label>
-	      </MacroButton>
+          <Label>Find</Label>
+        </MacroButton>
       </MacroButtons>
     </Profile>
-    <Profile name="Twist">
+    <Profile name="Timeline">
       <WheelMode>Twist</WheelMode>
       <WheelKey>0</WheelKey>
       <MacroButtons>
         <MacroButton>
-          <Action>0,49</Action>
+          <Action>0,32</Action>
           <Action>0,0</Action>
           <Action>0,0</Action>
-          <Label>Button 1</Label>
+          <Label>Play</Label>
         </MacroButton>
-        <MacroButton>
-          <Action>0,50</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 2</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,51</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 3</Label>
-	      </MacroButton>
-        <MacroButton>
-	        <Action>0,52</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 4</Label>
-	      </MacroButton>
-        <MacroButton>
-	        <Action>0,53</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 5</Label>
-	      </MacroButton>
-        <MacroButton>
-	        <Action>0,54</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 6</Label>
-	      </MacroButton>
-      </MacroButtons>
-    </Profile>
-    <Profile name="Momentum">
-      <WheelMode>Momentum</WheelMode>
-      <WheelKey>0</WheelKey>
-      <MacroButtons>
-        <MacroButton>
-          <Action>0,49</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 1</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,50</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 2</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,51</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 3</Label>
-	      </MacroButton>
-        <MacroButton>
-	        <Action>0,52</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 4</Label>
-	      </MacroButton>
-        <MacroButton>
-	        <Action>0,53</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 5</Label>
-	      </MacroButton>
-        <MacroButton>
-	        <Action>0,54</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 6</Label>
-	      </MacroButton>
-      </MacroButtons>
-    </Profile>
-    <Profile name="Endstop">
-      <WheelMode>Endstop</WheelMode>
-      <WheelKey>0</WheelKey>
-      <MacroButtons>
-        <MacroButton>
-          <Action>0,49</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 1</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,50</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 2</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,51</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 3</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,52</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 4</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,53</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 5</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,54</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 6</Label>
-        </MacroButton>
-      </MacroButtons>
-    </Profile>
-    <Profile name="Friction">
-      <WheelMode>Friction</WheelMode>
-      <WheelKey>0</WheelKey>
-      <MacroButtons>
-        <MacroButton>
-          <Action>0,49</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 1</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,50</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 2</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,51</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 3</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,52</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 4</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,53</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 5</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,54</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 6</Label>
-        </MacroButton>
-      </MacroButtons>
-    </Profile>
-    <Profile name="Snap">
-      <WheelMode>Snap</WheelMode>
-      <WheelKey>0</WheelKey>
-      <MacroButtons>
-        <MacroButton>
-          <Action>0,49</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 1</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,50</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 2</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,51</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 3</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,52</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 4</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,53</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 5</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,54</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 6</Label>
-        </MacroButton>
-      </MacroButtons>
-    </Profile>
-    <Profile name="Magnetic">
-      <WheelMode>Magnetic</WheelMode>
-      <WheelKey>0</WheelKey>
-      <MacroButtons>
-        <MacroButton>
-          <Action>0,49</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 1</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,50</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 2</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,51</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 3</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,52</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 4</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,53</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 5</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,54</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Button 6</Label>
-        </MacroButton>
-      </MacroButtons>
-    </Profile>
-    <Profile name="Blender">
-      <WheelMode>Twist</WheelMode>
-      <WheelKey>0</WheelKey>
-      <MacroButtons>
         <MacroButton>
           <Action>0,17</Action>
           <Action>0,83</Action>
@@ -396,68 +107,20 @@
           <Label>Redo</Label>
         </MacroButton>
         <MacroButton>
-          <Action>0,32</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Play/Pause</Label>
-        </MacroButton>
-        <MacroButton>
           <Action>0,73</Action>
           <Action>0,0</Action>
           <Action>0,0</Action>
-          <Label>Keyframe</Label>
+          <Label>Marker</Label>
         </MacroButton>
         <MacroButton>
-          <Action>0,114</Action>
-          <Action>0,0</Action>
+          <Action>0,17</Action>
+          <Action>0,70</Action>
           <Action>0,0</Action>
           <Label>Search</Label>
         </MacroButton>
       </MacroButtons>
     </Profile>
-    <Profile name="Fusion 360">
-      <WheelMode>Twist</WheelMode>
-      <WheelKey>0</WheelKey>
-      <MacroButtons>
-        <MacroButton>
-          <Action>0,17</Action>
-          <Action>0,90</Action>
-          <Action>0,0</Action>
-          <Label>Undo</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,17</Action>
-          <Action>0,89</Action>
-          <Action>0,0</Action>
-          <Label>Redo</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,69</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Extrude</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,81</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Press Pull</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,76</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Line</Label>
-        </MacroButton>
-        <MacroButton>
-          <Action>0,73</Action>
-          <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Inspect</Label>
-        </MacroButton>
-      </MacroButtons>
-    </Profile>
-    <Profile name="Web Browsing">
+    <Profile name="Browser">
       <WheelMode>Momentum</WheelMode>
       <WheelKey>0</WheelKey>
       <MacroButtons>
@@ -495,26 +158,56 @@
           <Action>0,17</Action>
           <Action>0,76</Action>
           <Action>0,0</Action>
-          <Label>Address Bar</Label>
+          <Label>Address</Label>
         </MacroButton>
       </MacroButtons>
     </Profile>
-    <Profile name="Computer Control">
-      <WheelMode>Clicky</WheelMode>
+    <Profile name="Light">
+      <WheelMode>Free</WheelMode>
       <WheelKey>0</WheelKey>
       <MacroButtons>
         <MacroButton>
-          <Action>0,175</Action>
+          <Action>0,33</Action>
           <Action>0,0</Action>
           <Action>0,0</Action>
-          <Label>Vol Up</Label>
+          <Label>PageUp</Label>
         </MacroButton>
         <MacroButton>
-          <Action>0,174</Action>
+          <Action>0,34</Action>
           <Action>0,0</Action>
           <Action>0,0</Action>
-          <Label>Vol Down</Label>
+          <Label>PageDown</Label>
         </MacroButton>
+        <MacroButton>
+          <Action>0,36</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Home</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,35</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>End</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,9</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Tab</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,13</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Enter</Label>
+        </MacroButton>
+      </MacroButtons>
+    </Profile>
+    <Profile name="Volume">
+      <WheelMode>Endstop</WheelMode>
+      <WheelKey>0</WheelKey>
+      <MacroButtons>
         <MacroButton>
           <Action>0,173</Action>
           <Action>0,0</Action>
@@ -522,22 +215,160 @@
           <Label>Mute</Label>
         </MacroButton>
         <MacroButton>
-          <Action>0,91</Action>
-          <Action>0,76</Action>
+          <Action>0,174</Action>
           <Action>0,0</Action>
-          <Label>Lock</Label>
+          <Action>0,0</Action>
+          <Label>Vol-</Label>
         </MacroButton>
         <MacroButton>
-          <Action>0,91</Action>
-          <Action>0,9</Action>
+          <Action>0,175</Action>
           <Action>0,0</Action>
-          <Label>Task View</Label>
+          <Action>0,0</Action>
+          <Label>Vol+</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,32</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Play</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,18</Action>
+          <Action>0,37</Action>
+          <Action>0,0</Action>
+          <Label>Prev</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,18</Action>
+          <Action>0,39</Action>
+          <Action>0,0</Action>
+          <Label>Next</Label>
+        </MacroButton>
+      </MacroButtons>
+    </Profile>
+    <Profile name="3D Orbit">
+      <WheelMode>Friction</WheelMode>
+      <WheelKey>0</WheelKey>
+      <MacroButtons>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,90</Action>
+          <Action>0,0</Action>
+          <Label>Undo</Label>
         </MacroButton>
         <MacroButton>
           <Action>0,17</Action>
-          <Action>0,86</Action>
+          <Action>0,89</Action>
           <Action>0,0</Action>
-          <Label>Paste</Label>
+          <Label>Redo</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,69</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Extrude</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,81</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Pull</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,76</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Line</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,73</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Inspect</Label>
+        </MacroButton>
+      </MacroButtons>
+    </Profile>
+    <Profile name="Tools">
+      <WheelMode>Snap</WheelMode>
+      <WheelKey>0</WheelKey>
+      <MacroButtons>
+        <MacroButton>
+          <Action>0,49</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Tool 1</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,50</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Tool 2</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,51</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Tool 3</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,52</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Tool 4</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,53</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Tool 5</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,54</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Tool 6</Label>
+        </MacroButton>
+      </MacroButtons>
+    </Profile>
+    <Profile name="Workspaces">
+      <WheelMode>Magnetic</WheelMode>
+      <WheelKey>0</WheelKey>
+      <MacroButtons>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,49</Action>
+          <Action>0,0</Action>
+          <Label>WS 1</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,50</Action>
+          <Action>0,0</Action>
+          <Label>WS 2</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,51</Action>
+          <Action>0,0</Action>
+          <Label>WS 3</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,52</Action>
+          <Action>0,0</Action>
+          <Label>WS 4</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,122</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Fullscreen</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,27</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Esc</Label>
         </MacroButton>
       </MacroButtons>
     </Profile>
