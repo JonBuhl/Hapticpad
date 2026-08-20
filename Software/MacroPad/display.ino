@@ -81,10 +81,10 @@ void drawRootMenu(uint8_t selection){
   u8g2.setFont(u8g2_font_5x7_tf);
   char storageLabel[24];
   snprintf(storageLabel, sizeof(storageLabel), "USB Storage %s", usbStorageMode ? "On" : "Off");
-  const char *options[4] = {"Profile Menu", "RGB Modes", "Colors", storageLabel};
+  const char *options[5] = {"Profile Menu", "RGB Modes", "Colors", storageLabel, "Haptic Test"};
   int y = 26 - selection * 12; // keep selected entry anchored while list scrolls
 
-  for(uint8_t i = 0; i < 4; i++){
+  for(uint8_t i = 0; i < 5; i++){
     const char *label = options[i];
     if(i == selection){
       u8g2.drawBox(0, y - 8, u8g2.getStrWidth(label) + 2, 9);
@@ -139,6 +139,36 @@ void drawColorMenu(uint8_t selection){
       u8g2.setDrawColor(1);
     } else if(y > 0){
       u8g2.drawStr(1, y, line);
+    }
+    y += 10;
+  }
+}
+
+void drawHapticMenu(uint8_t selection){
+  u8g2.setFont(u8g2_font_5x7_tf);
+
+  if(hapticTestActive){
+    char line[32];
+    snprintf(line, sizeof(line), "Testing: %s", wheelModeNames[hapticTestMode]);
+    u8g2.drawStr(1, 12, line);
+    u8g2.drawStr(1, 30, "Turn the wheel to");
+    u8g2.drawStr(1, 40, "feel this mode.");
+    u8g2.drawStr(1, 58, "BACK to return");
+    return;
+  }
+
+  int y = 18 - selection * 10; // keep selected entry anchored while list scrolls
+
+  for(uint8_t i = 0; i < WHEEL_MODE_COUNT; i++){
+    const char *modeName = wheelModeNames[i];
+
+    if(i == selection){
+      u8g2.drawBox(0, y - 8, u8g2.getStrWidth(modeName) + 2, 9);
+      u8g2.setDrawColor(0);
+      u8g2.drawStr(1, y, modeName);
+      u8g2.setDrawColor(1);
+    } else if(y > 0){
+      u8g2.drawStr(1, y, modeName);
     }
     y += 10;
   }

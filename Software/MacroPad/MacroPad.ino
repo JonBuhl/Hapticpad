@@ -7,6 +7,7 @@
 #include <SD.h>
 #include <FastLED.h>
 #include "menu.h"
+#include "haptics.h"
 
 const unsigned char SD_Card [] PROGMEM = {
 	0xff, 0x01, 0x55, 0x01, 0x55, 0x01, 0xff, 0x01, 0x01, 0x03, 0x2d, 0x02, 0x45, 0x03, 0x49, 0x01, 
@@ -17,10 +18,7 @@ const unsigned char SD_Card [] PROGMEM = {
 #include <Wire.h>
 #endif
 
-#define WHEEL_CLICKY        0
-#define WHEEL_TWIST         1
-#define WHEEL_MOMENTUM      2
-#define WHEEL_FREE_SCROLL   3
+// Wheel mode ids and the haptic model live in haptics.h
 
 #define KEY_LEFT_CTRL 17
 
@@ -136,12 +134,12 @@ bool wheelKeyPressed = false;
 
 //PID Values
 
-float Clicky_P;
-float Clicky_I;
-float Twist_P;
-float Twist_I;
-float Momentum_P;
-float Momentum_I;
+float Clicky_P = 0.5;    //legacy, Clicky now uses the haptic model
+float Clicky_I = 0;      //legacy
+float Twist_P = 0.65;    //legacy, Twist now uses the haptic model
+float Twist_I = 0.2;     //legacy
+float Momentum_P = 0.3;
+float Momentum_I = 0;
 float motorP = 0.5;
 float motorI = 0;
 float motorD = 0;
@@ -157,9 +155,13 @@ long debounceTimer;
 bool decelDetected = false;
 bool decelerating = false;
 
-int wheelMode = 0;
-int lastWheelMode = 0;
-bool wheelModeChanged = true;
+// wheelMode and wheelModeChanged are written on core 1 (profile/settings load,
+// opening and closing the menu) and read on core 0 in loop(). Without volatile
+// the compiler is free to hoist the load out of the main loop, which leaves core
+// 0 running whichever mode it saw first and never noticing the menu.
+volatile int wheelMode = 0;
+int lastWheelMode = -1; //core 0 only
+volatile bool wheelModeChanged = true;
 
 bool FOC_Ready = false;
 
@@ -187,22 +189,26 @@ char buttonLabel[6][32];
 unsigned long profileChangeTimer;
 bool profilePlusStarted = false;
 bool profileMinusStarted = false;
-bool profileSelectMenu = false;
+// Set on core 1, read on core 0 to decide whether the wheel drives the menu or
+// the PC. Must be volatile, see wheelMode above.
+volatile bool profileSelectMenu = false;
 
 enum MenuPage : uint8_t {
   MENU_NONE = 0,
   MENU_ROOT,
   MENU_PROFILE,
   MENU_RGB,
-  MENU_COLOR
+  MENU_COLOR,
+  MENU_HAPTIC
 };
 
-MenuPage menuPage = MENU_NONE;
+volatile MenuPage menuPage = MENU_NONE;
 uint8_t menuRootSelection = 0; //0 = Profile menu, 1 = RGB menu
 uint8_t profileMenuSelection = 0;
 bool menuReentryGuard = false; //prevents immediate re-entry after exit until buttons released
 
-const MenuDefinition *currentMenu = nullptr;
+// Written on core 1 by enterMenu()/exitMenu(), read on core 0 by menuScroll().
+const MenuDefinition * volatile currentMenu = nullptr;
 
 void enterMenu(MenuPage page);
 void exitMenu();
@@ -289,7 +295,7 @@ void setup() { //Core 0
 
   motor.PID_velocity.D = 0;
 
-  motor.voltage_limit = 3;
+  motor.voltage_limit = MOTOR_BASE_VOLTAGE_LIMIT;
 
   motor.PID_velocity.output_ramp = 1000;
   motor.LPF_velocity.Tf = 0.025f;//0.01f;
@@ -509,6 +515,7 @@ bool enterUsbStorageMode(){
   TinyUSBDevice.attach();
   usbStorageMode = true;
   sdDetected = false;
+  hapticTestActive = false;
   profileSelectMenu = false;
   menuPage = MENU_NONE;
   currentMenu = nullptr;
@@ -541,35 +548,58 @@ void loop() {
   motor.loopFOC();
 
   if(usbStorageMode){
+    lastWheelMode = -1; //re-initialise the wheel when storage mode ends
     return;
   }
 
-  if(lastWheelMode != wheelMode){
+  // Work out which behaviour the wheel should be running right now. The haptic
+  // test page overrides the profile, and an open menu overrides both.
+  int effectiveMode;
+  if(hapticTestActive){
+    effectiveMode = hapticTestMode;
+  } else if(profileSelectMenu){
+    effectiveMode = WHEEL_MODE_MENU;
+  } else {
+    effectiveMode = wheelMode;
+  }
+
+  if(lastWheelMode != effectiveMode){
     wheelModeChanged = true;
   }
-  lastWheelMode = wheelMode;
+  lastWheelMode = effectiveMode;
 
-  if(!profileSelectMenu){
-    switch (wheelMode)
-    {
-    case WHEEL_CLICKY:
-      notchyWheel();
-      break;
-    case WHEEL_TWIST:
-      twistScroll();
-      break;
-    case WHEEL_MOMENTUM:
-      freeSpinning();
-      break;
-    case WHEEL_FREE_SCROLL:
-      freeScroll();
-      break;
+  switch (effectiveMode)
+  {
+  case WHEEL_MODE_MENU:
+    menuWheel(); // menu navigation only, no PC scroll
+    break;
+  case WHEEL_CLICKY:
+    notchyWheel();
+    break;
+  case WHEEL_TWIST:
+    twistScroll();
+    break;
+  case WHEEL_MOMENTUM:
+    freeSpinning();
+    break;
+  case WHEEL_FREE_SCROLL:
+    freeScroll();
+    break;
+  case WHEEL_ENDSTOP:
+    endstopWheel();
+    break;
+  case WHEEL_FRICTION:
+    frictionWheel();
+    break;
+  case WHEEL_SNAP:
+    snapWheel();
+    break;
+  case WHEEL_MAGNETIC:
+    magneticWheel();
+    break;
 
-    default:
-      break;
-    }
-  } else {
-    notchyWheel(); // in menu: only menu navigation, no PC scroll
+  default:
+    break;
   }
 }
 
@@ -593,7 +623,7 @@ void applyLedMode(uint8_t mode){
 }
 
 uint8_t rootMenuCount(){
-  return 4;
+  return 5;
 }
 
 uint8_t profileMenuCount(){
@@ -606,6 +636,10 @@ uint8_t rgbMenuCount(){
 
 uint8_t colorMenuCount(){
   return 2;
+}
+
+uint8_t hapticMenuCount(){
+  return WHEEL_MODE_COUNT;
 }
 
 void enterRootMenu(){
@@ -636,6 +670,13 @@ void enterColorMenu(){
   colorEditPtr = nullptr;
 }
 
+void enterHapticMenu(){
+  hapticTestActive = false;
+  if(hapticMenuSelection >= WHEEL_MODE_COUNT){
+    hapticMenuSelection = 0;
+  }
+}
+
 void confirmRoot(uint8_t selection){
   switch (selection)
   {
@@ -651,9 +692,21 @@ void confirmRoot(uint8_t selection){
   case 3:
     toggleUsbStorageMode();
     break;
+  case 4:
+    enterMenu(MENU_HAPTIC);
+    break;
   default:
     break;
   }
+}
+
+void confirmHaptic(uint8_t selection){
+  if(selection >= WHEEL_MODE_COUNT){
+    return;
+  }
+
+  hapticTestMode = selection;
+  hapticTestActive = true; //core 0 picks this up and runs the mode without any output
 }
 
 void confirmProfile(uint8_t selection){
@@ -676,7 +729,8 @@ const MenuDefinition menuDefinitions[] = {
   {MENU_ROOT, MENU_NONE, &menuRootSelection, rootMenuCount, drawRootMenu, confirmRoot, enterRootMenu},
   {MENU_PROFILE, MENU_ROOT, &profileMenuSelection, profileMenuCount, drawProfileMenu, confirmProfile, enterProfileMenu},
   {MENU_RGB, MENU_ROOT, &rgbMenuSelection, rgbMenuCount, drawRGBMenu, confirmRGB, enterRGBMenu},
-  {MENU_COLOR, MENU_ROOT, &colorMenuSelection, colorMenuCount, drawColorMenu, confirmColor, enterColorMenu }
+  {MENU_COLOR, MENU_ROOT, &colorMenuSelection, colorMenuCount, drawColorMenu, confirmColor, enterColorMenu },
+  {MENU_HAPTIC, MENU_ROOT, &hapticMenuSelection, hapticMenuCount, drawHapticMenu, confirmHaptic, enterHapticMenu}
 };
 
 const MenuDefinition* getMenuDefinition(MenuPage page){
@@ -716,7 +770,7 @@ void enterMenu(MenuPage page){
 }
 
 void menuScroll(int8_t scroll){
-  if(!currentMenu || scroll == 0){
+  if(!currentMenu || scroll == 0 || hapticTestActive){
     return;
   }
 
@@ -742,6 +796,10 @@ void menuScroll(int8_t scroll){
 }
 
 void menuHandleConfirm(){
+  if(hapticTestActive){
+    return; //already running a test, BACK is the only way out
+  }
+
   if(menuPage == MENU_COLOR && colorEditActive){
     colorEditChannel = (colorEditChannel + 1) % 3; //cycle R,G,B
     return;
@@ -753,6 +811,11 @@ void menuHandleConfirm(){
 }
 
 void menuHandleBack(){
+  if(hapticTestActive){
+    hapticTestActive = false; //stop the test, back to the mode list
+    return;
+  }
+
   if(menuPage == MENU_COLOR && colorEditActive){
     if(colorDirty){
       storeLastState();
@@ -778,18 +841,21 @@ void renderCurrentMenu(){
 }
 
 void openMenu(){
+  hapticTestActive = false;
   profileSelectMenu = true;
   profilePlusStarted = false;
   profileMinusStarted = false;
   menuButtonHandled[6] = true; //ignore current press that opened the menu
   menuButtonHandled[7] = true;
   enterMenu(MENU_ROOT);
-  target_angle = round(encoder.getAngle() / angle_step) * angle_step;
-  new_target_angle = target_angle;
+  // Makes core 0 pick the menu up and build the Clicky model for it. The wheel
+  // position itself does not need seeding, menuWheel() centres the detents on
+  // wherever the wheel happens to be sitting.
   wheelModeChanged = true;
 }
 
 void exitMenu(){
+  hapticTestActive = false;
   profileSelectMenu = false;
   menuPage = MENU_NONE;
   currentMenu = nullptr;
@@ -947,13 +1013,15 @@ void loop1() {
         renderCurrentMenu();
       }
 
-      encoderAngle = encoder.getAngle();
+      // Momentum is the one mode whose scrolling happens on core 1. Keep the
+      // reading in a local: the shared encoderAngle global belongs to the core 0
+      // wheel modes and clobbering it from here races against them.
+      if(!profileSelectMenu && !hapticTestActive && wheelMode == WHEEL_MOMENTUM){
+        float momentumAngle = encoder.getAngle();
 
-      if(!profileSelectMenu && wheelMode == WHEEL_MOMENTUM){
-        if(abs(lastEncoderAngle - encoderAngle) > 0.1){
-          wheelActionCheck();
-          usb_mouse.mouseScroll(0, (lastEncoderAngle - encoderAngle) * 10, 0);
-          lastEncoderAngle = encoderAngle;
+        if(abs(lastEncoderAngle - momentumAngle) > 0.1){
+          wheelScrollOutput((int)((lastEncoderAngle - momentumAngle) * WHEEL_TICKS_PER_RADIAN));
+          lastEncoderAngle = momentumAngle;
         } else {
           cancelWheelAction();
         }
@@ -1028,12 +1096,14 @@ bool readLastState(){
 
   file.close();
 
-  if(wheelMode > WHEEL_FREE_SCROLL){
+  if(wheelMode < 0 || wheelMode >= WHEEL_MODE_COUNT){
     wheelMode = WHEEL_CLICKY;
   }
   if(ledMode >= LED_MODE_COUNT){
     ledMode = LED_MODE_COUNT - 1;
   }
+
+  wheelModeChanged = true; //core 0 started before this ran, make it re-read the mode
 
   return true;
 }
