@@ -212,6 +212,19 @@ Required libraries: U8g2, Simple FOC, Adafruit TinyUSB Library, SdFat, FastLED.
 
 To flash: hold **BOOTSEL** while plugging in the Pico, copy the generated `.uf2` onto the `RPI-RP2` drive and the board reboots itself. To update the config, put the pad into **USB storage mode** from its menu and replace `config.xml` on the SD card.
 
+### Firmware archive (untracked)
+
+Every built firmware version is archived with a description of its code state in
+`firmware/` (gitignored — binaries and notes stay out of git). Build and archive
+in one step:
+
+```
+scripts/build_hapticpad.sh "Beschreibung der Änderungen" [version-tag]
+```
+
+or archive an existing UF2: `scripts/save_uf2.sh <file.uf2> <version-tag> "Beschreibung..."`.
+Both refuse to archive without a description. See `firmware/README.md`.
+
 ### Changes vs. upstream
 
 - **SmartKnob-style haptic engine** (`haptics.ino`): all eight modes are driven by a torque-mode software model of virtual detents, endstops, friction, snap points and magnetic positions — configurable via the settings table above.
