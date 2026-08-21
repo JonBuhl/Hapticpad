@@ -23,14 +23,50 @@ void menuScrollSteps(int steps){
   }
 }
 
-// Sends one key tap. Consumer keys carry their own press/release pair, the
-// keyboard ones are released straight away so a run of ticks reads as a run of
-// separate presses rather than one held key.
-void sendWheelDomainKey(uint8_t key){
+// ---------------------------------------------------------------------------
+// Wheel domain output
+//
+// Nothing a wheel domain sends goes out from the wheel mode itself any more.
+// Two things went wrong when it did:
+//
+//   * TinyUSB throws a HID report away while the previous one is still sitting
+//     in the endpoint waiting for the host to poll it. "press, delay(5),
+//     release" per detent is two reports well inside one polling interval, so
+//     ticks went missing, and how many went missing depended on how fast the
+//     wheel was turned. A quick flick forward and a careful turn back lost
+//     different numbers of ticks, which is exactly the drift that shows up when
+//     scratching.
+//   * A run of up to HAPTIC_MAX_STEPS_PER_LOOP taps blocked core 0, and core 0
+//     is the FOC loop.
+//
+// So taps are queued here and drained one report per pass of loop(), only ever
+// when the endpoint is actually free.
+// ---------------------------------------------------------------------------
+
+#define WHEEL_TAP_QUEUE_LEN 64
+
+// Written by whichever core is running the wheel mode, drained on core 0. Only
+// the producer ever moves the tail and only the consumer ever moves the head,
+// which keeps it sound even for Momentum, the one mode that scrolls from core 1.
+uint8_t wheelTapQueue[WHEEL_TAP_QUEUE_LEN];
+volatile uint8_t wheelTapHead = 0; // slot being sent right now
+volatile uint8_t wheelTapTail = 0; // next free slot
+bool wheelTapHeld = false;         // the tap at the head is pressed, not released
+
+bool wheelTapPending(){
+  return wheelTapHead != wheelTapTail;
+}
+
+// Presses or releases one wheel domain key. Consumer usages and keyboard keys
+// look the same to the caller. Returns false when the key maps to nothing this
+// firmware can send, so the caller can drop it instead of waiting for a release
+// that will never come.
+bool sendWheelKeyState(uint8_t key, bool pressed){
   uint16_t consumer = convertConsumerKeycode(key);
   if(consumer != 0){
-    sendConsumerKey(consumer);
-    return;
+    uint16_t report = pressed ? consumer : 0;
+    usb_keyboard.sendReport(REPORT_ID_CONSUMER, &report, sizeof(report));
+    return true;
   }
 
   uint8_t keycode[6] = { 0 };
@@ -39,17 +75,163 @@ void sendWheelDomainKey(uint8_t key){
   if(modifier == 0){
     keycode[0] = convertKeycode(key);
     if(keycode[0] == 0){
-      return;
+      return false;
     }
   }
 
-  usb_keyboard.keyboardReport(REPORT_ID_KEYBOARD, modifier, keycode);
-  delay(5);
-  usb_keyboard.keyboardRelease(REPORT_ID_KEYBOARD);
+  if(pressed){
+    usb_keyboard.keyboardReport(REPORT_ID_KEYBOARD, modifier, keycode);
+  } else {
+    usb_keyboard.keyboardRelease(REPORT_ID_KEYBOARD);
+  }
+
+  return true;
 }
 
-// One scroll tick becomes one tap of the direction's action. Positive scroll is
-// the direction that would otherwise scroll up, so that is the WheelUp action.
+void wheelTapQueuePush(uint8_t key){
+  uint8_t next = (uint8_t)((wheelTapTail + 1) % WHEEL_TAP_QUEUE_LEN);
+
+  if(key == 0 || next == wheelTapHead){
+    // A full queue means the wheel is being spun far faster than the PC can be
+    // told about. 63 taps is well past a full turn of a bounded domain, so this
+    // only ever bites on an unbounded one that is being flicked.
+    return;
+  }
+
+  wheelTapQueue[wheelTapTail] = key;
+  wheelTapTail = next;
+}
+
+void wheelTapQueuePop(){
+  wheelTapHead = (uint8_t)((wheelTapHead + 1) % WHEEL_TAP_QUEUE_LEN);
+}
+
+// Sends at most one report per call, and only when the endpoint has drained.
+// A report that has drained is a report the host has already polled, so the
+// press and the release can never be merged into nothing.
+void wheelTapTick(){
+  if(!wheelTapPending() || !usb_keyboard.ready()){
+    return;
+  }
+
+  uint8_t key = wheelTapQueue[wheelTapHead];
+
+  if(!wheelTapHeld){
+    if(sendWheelKeyState(key, true)){
+      wheelTapHeld = true;
+    } else {
+      wheelTapQueuePop(); //nothing sendable, do not sit on it
+    }
+    return;
+  }
+
+  sendWheelKeyState(key, false);
+  wheelTapHeld = false;
+  wheelTapQueuePop();
+}
+
+// ---- Scratch: hold time instead of taps ----
+// scratchDebtMs is a signed millisecond account of the scanning still owed to
+// the PC, positive being forward. Detents pay into it, the key that is held
+// draws it down in real time. Equal numbers of detents in the two directions
+// therefore buy equal amounts of hold time, and the account always drains back
+// to zero, so a scratch there and back leaves the player where it started.
+int32_t scratchDebtMs = 0;
+int8_t scratchDir = 0;        // direction currently held down, 0 = nothing held
+uint8_t scratchKey = 0;       // key belonging to that direction
+unsigned long scratchLastTick = 0;
+unsigned long scratchGapUntil = 0;
+
+// The two consumer usages that scan for as long as they are held. Every other
+// key a domain can send is a discrete step and stays on the tap queue.
+bool isScanKey(uint8_t key){
+  return key == 179 || key == 180; //Fast Forward, Rewind
+}
+
+// True when this domain drives the player by scanning rather than by stepping.
+bool wheelDomainScans(int8_t domain){
+  if(!wheelDomainSendsKeys(domain)){
+    return false;
+  }
+  return isScanKey(buttonWheelUp[domain]) || isScanKey(buttonWheelDown[domain]);
+}
+
+void scratchReleaseKey(){
+  if(scratchDir == 0){
+    return;
+  }
+
+  // A dropped release would leave the player scanning forever, so this one is
+  // worth waiting for rather than retrying next pass.
+  hidWaitReady();
+  sendWheelKeyState(scratchKey, false);
+
+  scratchDir = 0;
+  scratchKey = 0;
+  scratchGapUntil = millis() + SCRATCH_DIRECTION_GAP_MS;
+}
+
+// Lets go and clears the account. Used when the wheel is handed to something
+// else, so a new scratch session never starts by paying off the old one.
+void scratchReset(){
+  scratchReleaseKey();
+  scratchDebtMs = 0;
+}
+
+// One pass of the scratch seeker, called from loop() every time round.
+void scratchSeekTick(){
+  unsigned long now = millis();
+  uint32_t elapsed = (uint32_t)(now - scratchLastTick);
+  scratchLastTick = now;
+
+  int8_t domain = activeWheelDomain;
+
+  // Domain switched away, menu opened, or a haptic test started.
+  if(!wheelDomainScans(domain) || profileSelectMenu || hapticTestActive){
+    if(scratchDir != 0 || scratchDebtMs != 0){
+      scratchReset();
+    }
+    return;
+  }
+
+  if(scratchDir != 0){
+    // The key is down and the player is scanning, so the time it has been down
+    // comes off the account.
+    scratchDebtMs -= (int32_t)scratchDir * (int32_t)elapsed;
+
+    // Paid off, or the wheel has been turned back far enough that the other
+    // direction is owed instead.
+    if((int32_t)scratchDir * scratchDebtMs <= 0){
+      scratchReleaseKey();
+    }
+  }
+
+  if(scratchDir != 0 || (long)(now - scratchGapUntil) < 0){
+    return;
+  }
+
+  // Nothing held. Start scanning once enough detents have piled up to be worth
+  // a press the player will notice; anything smaller waits on the account.
+  if(abs(scratchDebtMs) < SCRATCH_MIN_HOLD_MS){
+    return;
+  }
+
+  int8_t dir = (scratchDebtMs > 0) ? 1 : -1;
+  uint8_t key = (dir > 0) ? buttonWheelUp[domain] : buttonWheelDown[domain];
+
+  if(key == 0 || !sendWheelKeyState(key, true)){
+    scratchDebtMs = 0; //no key this way, do not let the account run away
+    return;
+  }
+
+  scratchDir = dir;
+  scratchKey = key;
+  scratchLastTick = millis(); //the hold is timed from the press, not from the tick
+}
+
+// One scroll tick becomes one tap of the direction's action, or one detent's
+// worth of scanning where the action is a scan key. Positive scroll is the
+// direction that would otherwise scroll up, so that is the WheelUp action.
 void wheelDomainOutput(int scroll){
   int8_t domain = activeWheelDomain;
   if(domain < 0 || domain >= 6){
@@ -66,8 +248,15 @@ void wheelDomainOutput(int scroll){
     count = HAPTIC_MAX_STEPS_PER_LOOP;
   }
 
+  if(isScanKey(key)){
+    int32_t debt = scratchDebtMs +
+                   (int32_t)((scroll > 0) ? count : -count) * SCRATCH_MS_PER_DETENT;
+    scratchDebtMs = constrain(debt, -(int32_t)SCRATCH_MAX_DEBT_MS, (int32_t)SCRATCH_MAX_DEBT_MS);
+    return;
+  }
+
   for(int i = 0; i < count; i++){
-    sendWheelDomainKey(key);
+    wheelTapQueuePush(key);
   }
 }
 

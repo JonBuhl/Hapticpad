@@ -188,7 +188,21 @@ bool FOC_Ready = false;
 
 #define buttonCount 8 //Number of buttons connected
 byte buttonPins[buttonCount] = {9, 1, 0, 12, 11, 10, 13, 14}; //1,2,3,4,5,6
-int lastButtonState[buttonCount];
+// The debounced state everything else works from. Sampled by buttonDebounce()
+// on core 0 and read on core 1, so it has to be volatile, see wheelMode above.
+volatile int lastButtonState[buttonCount];
+// Raw pin readings and the moment each one last changed, used to fold the
+// contact bounce out before it ever reaches lastButtonState.
+int buttonRawState[buttonCount];
+unsigned long buttonDebounceTimer[buttonCount];
+// Core 0 is running loop() well before core 1 has configured the pull ups, and
+// a floating input reads as a pressed button. Sampling waits for this.
+volatile bool buttonsReady = false;
+// How long a reading has to hold still before it counts as the button's state.
+// Comfortably longer than the few milliseconds a tact switch chatters for on
+// either edge, and short enough to stay invisible at any speed a finger can
+// manage.
+#define BUTTON_DEBOUNCE_MS 25
 
 //Eeprom Memory
 int activeProfile = 0;
@@ -242,12 +256,13 @@ void setupUsbStorage();
 void drawUsbStorageScreen();
 
 unsigned long buttonPressStart[buttonCount];
-bool menuButtonHandled[buttonCount];
+// Both of these are cleared by buttonDebounce() on core 0 when the button is
+// released and set on core 1 when the press has been acted on, so they are
+// volatile for the same reason lastButtonState is.
+volatile bool menuButtonHandled[buttonCount];
 // Wheel domain buttons toggle on the press edge only, so holding one down does
 // not keep flipping the domain.
-bool domainButtonHandled[6];
-unsigned long domainToggleTimer = 0;
-#define DOMAIN_TOGGLE_DEBOUNCE_MS 150
+volatile bool domainButtonHandled[6];
 
 uint8_t wheelAction;
 uint8_t macroAction[6][3];   // decimal values
@@ -365,7 +380,10 @@ void setup1(){ //core 1
 
   for(int i = 0; i < buttonCount; i++){
     pinMode(buttonPins[i], INPUT_PULLUP);
+    buttonRawState[i] = 0;
+    buttonDebounceTimer[i] = millis();
   }
+  buttonsReady = true; //core 0 may start sampling now that the pins are pulled up
 
   while(!FOC_Ready){delay(10);}
 }
@@ -409,22 +427,53 @@ void toggleWheelDomain(int8_t domain){
   setWheelDomain(activeWheelDomain == domain ? -1 : domain);
 }
 
-void buttonRead(){ //Read button inputs and set state arrays.
-  for (int i = 0; i < buttonCount; i++){
-    int input = !digitalRead(buttonPins[i]);
-    bool prevState = lastButtonState[i];
-    if (input && !prevState){
-      buttonPressStart[i] = millis();
+// Samples the pins and folds the bounce out of them. A reading only becomes the
+// button's state once it has stayed put for BUTTON_DEBOUNCE_MS, so the chatter
+// at both the press and the release is swallowed here instead of turning into
+// double actions further down.
+//
+// This runs on core 0 rather than alongside the rest of buttonRead() on core 1
+// on purpose: core 1 only comes round once per display frame, which is tens of
+// milliseconds, and a debounce window is worth nothing if it is shorter than
+// the gap between samples. Core 0 is the FOC loop and comes round in
+// microseconds, so every button gets sampled hundreds of times per window and a
+// short press can no longer fall between two readings either.
+void buttonDebounce(){
+  if(!buttonsReady){
+    return; //pull ups not configured yet, the pins would read as pressed
+  }
+
+  unsigned long now = millis();
+
+  for(int i = 0; i < buttonCount; i++){
+    int raw = !digitalRead(buttonPins[i]);
+
+    if(raw != buttonRawState[i]){
+      buttonRawState[i] = raw;
+      buttonDebounceTimer[i] = now; //still moving, start the window again
+      continue;
     }
-    lastButtonState[i] = input;
-    if(!input){
+
+    if(raw == lastButtonState[i] || now - buttonDebounceTimer[i] < BUTTON_DEBOUNCE_MS){
+      continue;
+    }
+
+    lastButtonState[i] = raw;
+
+    if(raw){
+      buttonPressStart[i] = now;
+    } else {
+      // Released for real. Edge triggered actions are armed again from here,
+      // which is what keeps a bouncing release from arming a second press.
       menuButtonHandled[i] = false;
       if(i < 6){
         domainButtonHandled[i] = false;
       }
     }
   }
+}
 
+void buttonRead(){ //Act on the debounced button states.
   if(usbStorageMode){
     if(lastButtonState[6] && lastButtonState[7]){
       if(usbStorageButtonTimer == 0){
@@ -454,10 +503,10 @@ void buttonRead(){ //Read button inputs and set state arrays.
       if(buttonWheelMode[i] != WHEEL_DOMAIN_NONE){
         // Wheel domain button: it only ever switches the wheel over, its macro
         // actions are ignored. Edge triggered so a held button toggles once.
-        if(lastButtonState[i] && !domainButtonHandled[i] &&
-           domainToggleTimer + DOMAIN_TOGGLE_DEBOUNCE_MS < millis()){
+        // The press edge is already debounced, so nothing else is needed to
+        // keep a bouncing contact from toggling the domain twice.
+        if(lastButtonState[i] && !domainButtonHandled[i]){
           domainButtonHandled[i] = true;
-          domainToggleTimer = millis();
           toggleWheelDomain((int8_t)i);
         }
         continue;
@@ -627,6 +676,17 @@ void exitUsbStorageMode(){
 
 void loop() {
   motor.loopFOC();
+
+  // Buttons are sampled from here so the debounce window is many samples wide,
+  // see buttonDebounce(). Core 1 only acts on the result.
+  buttonDebounce();
+
+  // Wheel domain output is drained from here as well, one report at a time, so
+  // neither a run of key taps nor a held scan key ever stalls the FOC loop.
+  // Both run before the storage mode check so a key that is still down when the
+  // pad turns into a card reader is let go of first.
+  wheelTapTick();
+  scratchSeekTick();
 
   if(usbStorageMode){
     lastWheelMode = -1; //re-initialise the wheel when storage mode ends
@@ -1037,6 +1097,23 @@ uint16_t convertConsumerKeycode(int input){
       return HID_USAGE_CONSUMER_PLAY_PAUSE;
   }
   return 0;
+}
+
+// Waits for the HID endpoint to drain before the next report is queued.
+// TinyUSB drops a report while the previous one is still waiting to be polled,
+// so a report sent without this can simply vanish. Bounded, so a pad that is
+// powered but not enumerated does not sit here forever.
+#define HID_READY_TIMEOUT_MS 20
+bool hidWaitReady(){
+  unsigned long start = millis();
+
+  while(!usb_keyboard.ready()){
+    if(millis() - start > HID_READY_TIMEOUT_MS){
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void sendConsumerKey(uint16_t usage){

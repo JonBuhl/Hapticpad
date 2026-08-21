@@ -73,6 +73,27 @@ const char *wheelModeNames[WHEEL_MODE_COUNT] = {
 // the feel of the original firmware.
 #define WHEEL_TICKS_PER_RADIAN       10.0f
 
+// ---- Scratch seeking (HID scan controls) ----
+// Fast Forward (179) and Rewind (180) are not step keys, they are scan keys: a
+// player seeks for as long as the key is held and stops when it is let go. How
+// far a single tap moves is anybody's guess, and in most players it is not the
+// same distance in both directions, which is why tapping them once per detent
+// drifts. A domain that sends them therefore buys hold time with its detents
+// instead, one detent being worth this many milliseconds of scanning.
+#define SCRATCH_MS_PER_DETENT        60
+// A press shorter than this is never started. The leftover stays on the account
+// and is settled by the next detent rather than being thrown away, so nothing
+// is lost in one direction that was not also lost in the other.
+#define SCRATCH_MIN_HOLD_MS          40
+// Safety valve for a flick of the wheel, so a spin cannot queue up half a
+// minute of seeking that carries on long after the wheel has stopped. Applied
+// the same way to both directions, so it clips a fast turn symmetrically.
+#define SCRATCH_MAX_DEBT_MS          4000
+// Quiet gap after letting go of a scan key. Keeps two opposite scans from
+// running into each other and stops the run of rapid presses that some players
+// collapse into a track skip.
+#define SCRATCH_DIRECTION_GAP_MS     60
+
 // ---- User configurable haptic settings (see <Settings> in config.xml) ----
 float hapticVoltageLimit   = 3.0f;   // <Haptic_VoltageLimit>
 float hapticDetentStrength = 2.5f;   // <Haptic_DetentStrength>
