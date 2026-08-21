@@ -180,6 +180,9 @@ uint8_t buttonWheelMode[6] = {
 };
 uint8_t buttonWheelUp[6];
 uint8_t buttonWheelDown[6];
+// Optional modifier sent together with the domain's wheel keys (e.g. Shift for
+// Spotify's 5s seek via Shift+Arrow). 0 = no modifier.
+uint8_t buttonWheelMod[6];
 // Written on core 1 by the button handler, read on core 0 in wheelScrollOutput()
 // and on core 1 by the display. Must be volatile, see wheelMode above.
 volatile int8_t activeWheelDomain = -1; //-1 = profile default

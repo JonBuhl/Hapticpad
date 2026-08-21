@@ -22,6 +22,9 @@
 #   wheelUp / wheelDown: optionale Aktion [Delay_ms, Keycode] je Drehrichtung.
 #              Gesetzt = jeder Rasten-Tick sendet einen Tastendruck statt zu
 #              scrollen. Weggelassen = normales Scrollen mit der Haptik der Domain.
+#   wheelMod:  optionaler Modifier-Keycode (16=Shift, 17=Strg, 18=Alt), der
+#              zusammen mit wheelUp/wheelDown gesendet wird — z.B. Shift+Pfeil
+#              fuer Spotify Desktop (5s-Seek, Spotify muss fokussiert sein).
 
 Settings:
   LED_Mode: "Solid"
@@ -212,10 +215,13 @@ Profiles:
       # ACHTUNG: Die Firmware erzwingt für Scan-Domains Friction-Haptik
       # (unbegrenzt, kontinuierlich) — ein konfigurierter Endstop würde Rasten
       # am Anschlag verschlucken und das Scratch-Konto asymmetrisch machen.
+      # Spotify Desktop: SHIFT+Pfeil = 5s-Seek (App muss fokussiert sein),
+      # feiner als die Media-Keys (10s). Pfeil rechts = 39, links = 37, Shift = 16.
       - label: "Scratch"
         wheelMode: "Friction"
-        wheelUp: [0, 179]
-        wheelDown: [0, 180]
+        wheelUp: [0, 39]
+        wheelDown: [0, 37]
+        wheelMod: 16
       - label: "Play/Pause"
         actions: [[0, 205], [0, 0], [0, 0]]
       - label: "Next"

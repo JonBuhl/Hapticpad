@@ -137,6 +137,12 @@ def button_lines(button):
             raise ValueError("%s ohne wheelMode bei Button '%s'" % (key, button.get("label")))
         lines.append("          <%s>%s</%s>" % (tag, action(value), tag))
 
+    modifier = button.get("wheelMod")
+    if modifier is not None:
+        if wheel_mode is None:
+            raise ValueError("wheelMod ohne wheelMode bei Button '%s'" % button.get("label"))
+        lines.append("          <WheelMod>%s</WheelMod>" % scalar(modifier))
+
     lines.append("        </MacroButton>")
     return lines
 

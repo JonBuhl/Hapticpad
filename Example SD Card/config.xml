@@ -391,8 +391,9 @@
           <Action>0,0</Action>
           <Label>Scratch</Label>
           <WheelMode>Friction</WheelMode>
-          <WheelUp>0,179</WheelUp>
-          <WheelDown>0,180</WheelDown>
+          <WheelUp>0,39</WheelUp>
+          <WheelDown>0,37</WheelDown>
+          <WheelMod>16</WheelMod>
         </MacroButton>
         <MacroButton>
           <Action>0,205</Action>
