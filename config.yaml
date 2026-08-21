@@ -43,7 +43,7 @@ Settings:
   Haptic_Range: 24
   Haptic_MagneticPositions: "0,6,12,18"
   Clicky_Detents: 40
-  Clicky_Strength: 2.5
+  Clicky_Strength: 2.0
   Twist_Strength: 2.0
   Twist_Range: 60
   Friction_Strength: 1.0

@@ -25,7 +25,7 @@
     <Haptic_Range>24</Haptic_Range>
     <Haptic_MagneticPositions>0,6,12,18</Haptic_MagneticPositions>
     <Clicky_Detents>40</Clicky_Detents>
-    <Clicky_Strength>2.5</Clicky_Strength>
+    <Clicky_Strength>2</Clicky_Strength>
     <Twist_Strength>2</Twist_Strength>
     <Twist_Range>60</Twist_Range>
     <Friction_Strength>1</Friction_Strength>
