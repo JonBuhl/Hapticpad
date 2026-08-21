@@ -410,15 +410,6 @@ void setWheelDomain(int8_t domain){
     // A domain that taps its own keys must not also hold the profile's wheel
     // key down, it is not scrolling at all.
     wheelAction = wheelDomainSendsKeys(domain) ? 0 : profileWheelKey;
-
-    // Scan domains (FF/RW) buy hold time per tick, so the haptic model must
-    // never swallow ticks at a position limit: the Endstop mode drops every
-    // tick past its range, which is exactly the drift seen when scratching
-    // (ticks lost at the stop never come back on the reverse turn). Friction
-    // is unbounded and continuous, so every tick reaches the debt account.
-    if(wheelDomainScans(domain)){
-      wheelMode = WHEEL_FRICTION;
-    }
   } else {
     activeWheelDomain = -1;
     wheelMode = profileWheelMode;
@@ -697,11 +688,10 @@ void loop() {
   buttonDebounce();
 
   // Wheel domain output is drained from here as well, one report at a time, so
-  // neither a run of key taps nor a held scan key ever stalls the FOC loop.
-  // Both run before the storage mode check so a key that is still down when the
-  // pad turns into a card reader is let go of first.
+  // a run of key taps never stalls the FOC loop. It runs before the storage
+  // mode check so a key that is still down when the pad turns into a card
+  // reader is let go of first.
   wheelTapTick();
-  scratchSeekTick();
 
   if(usbStorageMode){
     lastWheelMode = -1; //re-initialise the wheel when storage mode ends

@@ -198,8 +198,8 @@ Profiles:
       - label: "Esc"
         actions: [[0, 27], [0, 0], [0, 0]]
 
-  # 9 — Media: zeigt die Wheel-Domains. Button 1 und 2 ersetzen das Scrollen
-  # durch eigene Rad-Modi, Button 3-6 sind normale Macro-Buttons.
+  # 9 — Media: zeigt die Wheel-Domains. Button 1 ersetzt das Scrollen durch
+  # einen eigenen Rad-Modus, Button 2-6 sind normale Macro-Buttons.
   - name: "Media"
     WheelMode: "Clicky"
     WheelKey: 0
@@ -209,14 +209,8 @@ Profiles:
         wheelMode: "Endstop"
         wheelUp: [0, 175]
         wheelDown: [0, 174]
-      # Endstopps wie Anfang/Ende eines Songs, Ticks spulen vor/zurück.
-      # ACHTUNG: Die Firmware erzwingt für Scan-Domains Friction-Haptik
-      # (unbegrenzt, kontinuierlich) — ein konfigurierter Endstop würde Rasten
-      # am Anschlag verschlucken und das Scratch-Konto asymmetrisch machen.
-      - label: "Scratch"
-        wheelMode: "Friction"
-        wheelUp: [0, 179]
-        wheelDown: [0, 180]
+      - label: "Stop"
+        actions: [[0, 183], [0, 0], [0, 0]]
       - label: "Play/Pause"
         actions: [[0, 205], [0, 0], [0, 0]]
       - label: "Next"

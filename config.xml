@@ -386,13 +386,10 @@
           <WheelDown>0,174</WheelDown>
         </MacroButton>
         <MacroButton>
+          <Action>0,183</Action>
           <Action>0,0</Action>
           <Action>0,0</Action>
-          <Action>0,0</Action>
-          <Label>Scratch</Label>
-          <WheelMode>Friction</WheelMode>
-          <WheelUp>0,179</WheelUp>
-          <WheelDown>0,180</WheelDown>
+          <Label>Stop</Label>
         </MacroButton>
         <MacroButton>
           <Action>0,205</Action>
