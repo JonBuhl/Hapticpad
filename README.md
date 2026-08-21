@@ -3,6 +3,8 @@
 
 A 6 button macropad with a display for button labels and a mouse knob with haptic feedback!
 
+> **Fork with a SmartKnob-style haptic engine.** Based on [CNCDan's Haptic Pad](https://github.com/dmcke5/Hapticpad), this fork drives the wheel with a torque-mode software model of virtual detents and endstops (ported from [scottbez1/smartknob](https://github.com/scottbez1/smartknob)) — see [Changes vs. upstream](#changes-vs-upstream).
+
 [Project Video Link](https://youtu.be/bNUKRJQjuvQ)
 
 #### Features
@@ -115,12 +117,15 @@ The Encoder connections are labelled too so just connect the four pins I've incl
 > [!WARNING] 
 > The software is still a work in progress. Everything seen in the video is functional currently, but I'm sure I will have missed some bugs as I've only had time to do some limited testing so far. I will work on clearing as many bugs as I can in the coming weeks but let me know if you run into any! If you're going to submit an issue with a bug, please try and recount your steps to re-create the bug as it will make fixing it much easier!
 
-If you don't wish to compile the code yourself, just copy the latest version of the MacroPad.UF2 file from the software folder and install it directly onto the memory of your Pico using the boot method shown in the video.
+> [!NOTE]
+> The `Software/MacroPad_V1.0.uf2` checked into this repo is the **stock upstream build** — it does *not* include the haptic engine described here. Please compile the firmware from source instead (see [Compiling](#compiling)).
 
 You will also need to have your SD card set up correctly in order to use the macro pad.
-Copy the entire contents of the "Example SD Card" folder onto you SD card to begin with to ensure everything is working before you start working on your own files.
+Copy the entire contents of the "Example SD Card" folder onto your SD card to begin with — it ships with one profile per wheel mode, including the icon BMPs — then edit `config.yaml`/`config.xml` to your liking.
 
 ### XML Config
+
+The configuration is authored as YAML in `config.yaml` (repo root) and converted to `config.xml`, which is the file the firmware reads from the SD card root. `Example SD Card/config.xml` is the deployable copy.
 
 In the `<Settings>` tag of the XML file you will find all of the settings for the LED's, along with the P and I tuning values for the various wheel modes.
 
@@ -171,9 +176,13 @@ Then, there is a `<WheelMode>` and `<WheelKey>` tag. `<WheelKey>` can be any key
 - **Snap** - detents that pull the wheel into the nearest position, one scroll tick per position.
 - **Magnetic** - detents only at the positions listed in `<Haptic_MagneticPositions>`, smooth in between, one scroll tick per position.
 
+### Menu
+
+Hold either of the menu buttons to open the menu. The wheel uses **Clicky** haptics for menu navigation: one detent scrolls exactly one menu entry, so the selection always matches what you feel. The root menu lists the profiles and the "Haptic Test" page.
+
 ### Haptic Test page
 
-Hold either of the menu buttons to open the menu and pick "Haptic Test". That page lists every wheel mode; confirming one runs its motor behaviour so you can feel it while you tune the settings above. Scrolling and the wheel key are suppressed while a test is running, so nothing is sent to the PC. Press BACK to return to the list, and BACK again to leave the page.
+Pick "Haptic Test" from the menu. That page lists every wheel mode; confirming one runs its motor behaviour so you can feel it while you tune the settings above. Scrolling and the wheel key are suppressed while a test is running, so nothing is sent to the PC. Press BACK to return to the list, and BACK again to leave the page.
 
 Next is a `<MacroButtons>` tag that holds all of our Macro buttons for the profile.
 
@@ -191,6 +200,23 @@ Label is simply the name that will appear on screen for that button.
 
 And that's it! just replicate that first example profile as many times as you like (up to 256 times, anyway) and each one will create a new profile that you can store your macros in.
 
+### Compiling
 
+The sketch lives in `Software/MacroPad`. Build it with [arduino-cli](https://arduino.github.io/arduino-cli/) (RP2040 core 5.5.0, TinyUSB):
 
-& "C:\Program Files\Arduino IDE\resources\app\lib\backend\resources\arduino-cli.exe" compile --fqbn rp2040:rp2040:waveshare_rp2040_plus:usbstack=tinyusb --output-dir "build" "Software/MacroPad"
+```
+arduino-cli compile --fqbn rp2040:rp2040:waveshare_rp2040_plus --board-options "flash=16777216_0,usbstack=tinyusb" Software/MacroPad
+```
+
+Required libraries: U8g2, Simple FOC, Adafruit TinyUSB Library, SdFat, FastLED.
+
+To flash: hold **BOOTSEL** while plugging in the Pico, copy the generated `.uf2` onto the `RPI-RP2` drive and the board reboots itself. To update the config, put the pad into **USB storage mode** from its menu and replace `config.xml` on the SD card.
+
+### Changes vs. upstream
+
+- **SmartKnob-style haptic engine** (`haptics.ino`): all eight modes are driven by a torque-mode software model of virtual detents, endstops, friction, snap points and magnetic positions — configurable via the settings table above.
+- **Clicky/Twist P and I values** are still read for backwards compatibility, but no longer used (Clicky and Twist run on the haptic model).
+- **Menu navigation uses Clicky haptics** — one detent, one menu entry.
+- **Haptic Test page** to feel every mode without changing profile.
+- **`config.yaml`** is the editable source; `config.xml` is generated from it.
+- **Example SD Card** ships with one profile per wheel mode and generated 15x15 icon BMPs.
