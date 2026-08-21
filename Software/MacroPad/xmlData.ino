@@ -157,7 +157,6 @@ bool loadProfile(const char *filename, uint16_t index) {
   memset(buttonWheelMode, WHEEL_DOMAIN_NONE, sizeof(buttonWheelMode));
   memset(buttonWheelUp, 0, sizeof(buttonWheelUp));
   memset(buttonWheelDown, 0, sizeof(buttonWheelDown));
-  memset(buttonWheelMod, 0, sizeof(buttonWheelMod));
 
   // Clear macros
   memset(macroAction, 0, sizeof(macroAction));
@@ -211,10 +210,7 @@ bool loadProfile(const char *filename, uint16_t index) {
       if (up) buttonWheelUp[btn] = parseActionKeycode(up);
 
       const char *down = findTagValue(tail, "<WheelDown>");
-      if(down) buttonWheelDown[btn] = parseActionKeycode(down);
-
-      const char *mod = findTagValue(tail, "<WheelMod>");
-      if(mod) buttonWheelMod[btn] = (uint8_t)strtol(mod, nullptr, 10);
+      if (down) buttonWheelDown[btn] = parseActionKeycode(down);
     }
   }
 

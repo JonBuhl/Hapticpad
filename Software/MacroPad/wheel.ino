@@ -49,7 +49,6 @@ void menuScrollSteps(int steps){
 // the producer ever moves the tail and only the consumer ever moves the head,
 // which keeps it sound even for Momentum, the one mode that scrolls from core 1.
 uint8_t wheelTapQueue[WHEEL_TAP_QUEUE_LEN];
-uint8_t wheelTapQueueMod[WHEEL_TAP_QUEUE_LEN]; //modifier paired with each key
 volatile uint8_t wheelTapHead = 0; // slot being sent right now
 volatile uint8_t wheelTapTail = 0; // next free slot
 bool wheelTapHeld = false;         // the tap at the head is pressed, not released
@@ -59,11 +58,10 @@ bool wheelTapPending(){
 }
 
 // Presses or releases one wheel domain key. Consumer usages and keyboard keys
-// look the same to the caller. modifier rides along for keyboard keys so a
-// domain can send e.g. Shift+Arrow (Spotify's 5s seek) in one report. Returns
-// false when the key maps to nothing this firmware can send, so the caller can
-// drop it instead of waiting for a release that will never come.
-bool sendWheelKeyState(uint8_t key, bool pressed, uint8_t modifier){
+// look the same to the caller. Returns false when the key maps to nothing this
+// firmware can send, so the caller can drop it instead of waiting for a release
+// that will never come.
+bool sendWheelKeyState(uint8_t key, bool pressed){
   uint16_t consumer = convertConsumerKeycode(key);
   if(consumer != 0){
     uint16_t report = pressed ? consumer : 0;
@@ -72,9 +70,7 @@ bool sendWheelKeyState(uint8_t key, bool pressed, uint8_t modifier){
   }
 
   uint8_t keycode[6] = { 0 };
-  if(modifier == 0){
-    modifier = checkModifiers(key); //a bare modifier key as the action still works
-  }
+  int modifier = checkModifiers(key);
 
   if(modifier == 0){
     keycode[0] = convertKeycode(key);
@@ -92,7 +88,7 @@ bool sendWheelKeyState(uint8_t key, bool pressed, uint8_t modifier){
   return true;
 }
 
-void wheelTapQueuePush(uint8_t key, uint8_t modifier){
+void wheelTapQueuePush(uint8_t key){
   uint8_t next = (uint8_t)((wheelTapTail + 1) % WHEEL_TAP_QUEUE_LEN);
 
   if(key == 0 || next == wheelTapHead){
@@ -103,7 +99,6 @@ void wheelTapQueuePush(uint8_t key, uint8_t modifier){
   }
 
   wheelTapQueue[wheelTapTail] = key;
-  wheelTapQueueMod[wheelTapTail] = modifier;
   wheelTapTail = next;
 }
 
@@ -120,10 +115,9 @@ void wheelTapTick(){
   }
 
   uint8_t key = wheelTapQueue[wheelTapHead];
-  uint8_t modifier = wheelTapQueueMod[wheelTapHead];
 
   if(!wheelTapHeld){
-    if(sendWheelKeyState(key, true, modifier)){
+    if(sendWheelKeyState(key, true)){
       wheelTapHeld = true;
     } else {
       wheelTapQueuePop(); //nothing sendable, do not sit on it
@@ -131,7 +125,7 @@ void wheelTapTick(){
     return;
   }
 
-  sendWheelKeyState(key, false, modifier);
+  sendWheelKeyState(key, false);
   wheelTapHeld = false;
   wheelTapQueuePop();
 }
@@ -145,7 +139,6 @@ void wheelTapTick(){
 int32_t scratchDebtMs = 0;
 int8_t scratchDir = 0;        // direction currently held down, 0 = nothing held
 uint8_t scratchKey = 0;       // key belonging to that direction
-uint8_t scratchMod = 0;       // modifier belonging to that direction
 unsigned long scratchLastTick = 0;
 unsigned long scratchGapUntil = 0;
 
@@ -171,11 +164,10 @@ void scratchReleaseKey(){
   // A dropped release would leave the player scanning forever, so this one is
   // worth waiting for rather than retrying next pass.
   hidWaitReady();
-  sendWheelKeyState(scratchKey, false, scratchMod);
+  sendWheelKeyState(scratchKey, false);
 
   scratchDir = 0;
   scratchKey = 0;
-  scratchMod = 0;
   scratchGapUntil = millis() + SCRATCH_DIRECTION_GAP_MS;
 }
 
@@ -226,16 +218,14 @@ void scratchSeekTick(){
 
   int8_t dir = (scratchDebtMs > 0) ? 1 : -1;
   uint8_t key = (dir > 0) ? buttonWheelUp[domain] : buttonWheelDown[domain];
-  uint8_t mod = buttonWheelMod[domain];
 
-  if(key == 0 || !sendWheelKeyState(key, true, mod)){
+  if(key == 0 || !sendWheelKeyState(key, true)){
     scratchDebtMs = 0; //no key this way, do not let the account run away
     return;
   }
 
   scratchDir = dir;
   scratchKey = key;
-  scratchMod = mod;
   scratchLastTick = millis(); //the hold is timed from the press, not from the tick
 }
 
@@ -266,7 +256,7 @@ void wheelDomainOutput(int scroll){
   }
 
   for(int i = 0; i < count; i++){
-    wheelTapQueuePush(key, buttonWheelMod[domain]);
+    wheelTapQueuePush(key);
   }
 }
 
