@@ -263,6 +263,10 @@ volatile bool menuButtonHandled[buttonCount];
 // Wheel domain buttons toggle on the press edge only, so holding one down does
 // not keep flipping the domain.
 volatile bool domainButtonHandled[6];
+// Macro buttons fire on the press edge only, like the domain buttons. Without
+// this a held button re-sent its macro on every display frame, so a single
+// press of a toggle key like Play/Pause toggled several times.
+volatile bool macroButtonHandled[6];
 
 uint8_t wheelAction;
 uint8_t macroAction[6][3];   // decimal values
@@ -468,6 +472,7 @@ void buttonDebounce(){
       menuButtonHandled[i] = false;
       if(i < 6){
         domainButtonHandled[i] = false;
+        macroButtonHandled[i] = false;
       }
     }
   }
@@ -512,7 +517,8 @@ void buttonRead(){ //Act on the debounced button states.
         continue;
       }
 
-      if(lastButtonState[i]){
+      if(lastButtonState[i] && !macroButtonHandled[i]){
+        macroButtonHandled[i] = true;
         macroOutput(i);
         keyPressed = true;
         keyTimer = millis();
