@@ -420,5 +420,50 @@
         </MacroButton>
       </MacroButtons>
     </Profile>
+    <Profile name="System">
+      <WheelMode>Clicky</WheelMode>
+      <WheelKey>0</WheelKey>
+      <MacroButtons>
+        <MacroButton>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Brightness</Label>
+          <WheelMode>Endstop</WheelMode>
+          <WheelUp>0,184</WheelUp>
+          <WheelDown>0,185</WheelDown>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,44</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Screenshot</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,18</Action>
+          <Action>0,9</Action>
+          <Action>0,0</Action>
+          <Label>Alt+Tab</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,91</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Activities</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,91</Action>
+          <Action>0,76</Action>
+          <Action>0,0</Action>
+          <Label>Lock</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,16</Action>
+          <Action>0,44</Action>
+          <Action>0,0</Action>
+          <Label>Area Shot</Label>
+        </MacroButton>
+      </MacroButtons>
+    </Profile>
   </Profiles>
 </Configuration>

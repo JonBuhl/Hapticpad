@@ -1108,6 +1108,10 @@ uint16_t convertConsumerKeycode(int input){
       return HID_USAGE_CONSUMER_SCAN_PREVIOUS_TRACK;
     case 183:
       return HID_USAGE_CONSUMER_STOP;
+    case 184:
+      return HID_USAGE_CONSUMER_BRIGHTNESS_INCREMENT;
+    case 185:
+      return HID_USAGE_CONSUMER_BRIGHTNESS_DECREMENT;
     case 205:
       return HID_USAGE_CONSUMER_PLAY_PAUSE;
   }

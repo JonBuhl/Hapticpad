@@ -9,7 +9,8 @@
 #   Pfeile: 37=L, 38=O, 39=R, 40=U · F1-F12 = 112-123
 #   Media: 173=Mute, 174=Vol-, 175=Vol+, 176=Play, 177=Pause, 179=Vorspulen,
 #          180=Zurückspulen, 181=Nächster Titel, 182=Voriger Titel, 183=Stop,
-#          205=Play/Pause
+#          184=Helligkeit+, 185=Helligkeit-, 205=Play/Pause
+#   Sonstiges: 44=Druck (PrintScreen/Screenshot)
 #
 # Jeder Button = Liste aus bis zu 3 Aktionen; eine Aktion = [Delay_ms, Keycode].
 # Modifier-Kombi z.B. Strg+C = [[0,17],[0,67],[0,0]].
@@ -224,3 +225,32 @@ Profiles:
         actions: [[0, 182], [0, 0], [0, 0]]
       - label: "Mute"
         actions: [[0, 173], [0, 0], [0, 0]]
+
+  # 10 — System: Helligkeit wie Volume am Rad, die restlichen Knöpfe sind
+  # allgemeine OS-Shortcuts (GNOME/CachyOS).
+  - name: "System"
+    WheelMode: "Clicky"
+    WheelKey: 0
+    buttons:
+      # Endstopps als Anschlag bei 0% und 100% Helligkeit. Funktioniert, wenn
+      # das OS die Consumer-Helligkeits-Keys unterstützt (Laptop intern,
+      # DDC/CI-Monitore je nach Setup).
+      - label: "Brightness"
+        wheelMode: "Endstop"
+        wheelUp: [0, 184]
+        wheelDown: [0, 185]
+      # Druck = ganzer Bildschirm.
+      - label: "Screenshot"
+        actions: [[0, 44], [0, 0], [0, 0]]
+      # Alt+Tab = Fenster wechseln.
+      - label: "Alt+Tab"
+        actions: [[0, 18], [0, 9], [0, 0]]
+      # Super = GNOME Aktivitäten.
+      - label: "Activities"
+        actions: [[0, 91], [0, 0], [0, 0]]
+      # Super+L = Bildschirm sperren.
+      - label: "Lock"
+        actions: [[0, 91], [0, 76], [0, 0]]
+      # Shift+Druck = Bereichs-Screenshot (GNOME).
+      - label: "Area Shot"
+        actions: [[0, 16], [0, 44], [0, 0]]
