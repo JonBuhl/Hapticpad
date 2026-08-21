@@ -208,9 +208,12 @@ Profiles:
         wheelMode: "Endstop"
         wheelUp: [0, 175]
         wheelDown: [0, 174]
-      # Endstops wie Anfang/Ende eines Songs, Ticks spulen vor/zurück.
+      # Endstopps wie Anfang/Ende eines Songs, Ticks spulen vor/zurück.
+      # ACHTUNG: Die Firmware erzwingt für Scan-Domains Friction-Haptik
+      # (unbegrenzt, kontinuierlich) — ein konfigurierter Endstop würde Rasten
+      # am Anschlag verschlucken und das Scratch-Konto asymmetrisch machen.
       - label: "Scratch"
-        wheelMode: "Endstop"
+        wheelMode: "Friction"
         wheelUp: [0, 179]
         wheelDown: [0, 180]
       - label: "Play/Pause"

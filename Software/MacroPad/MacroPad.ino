@@ -410,6 +410,15 @@ void setWheelDomain(int8_t domain){
     // A domain that taps its own keys must not also hold the profile's wheel
     // key down, it is not scrolling at all.
     wheelAction = wheelDomainSendsKeys(domain) ? 0 : profileWheelKey;
+
+    // Scan domains (FF/RW) buy hold time per tick, so the haptic model must
+    // never swallow ticks at a position limit: the Endstop mode drops every
+    // tick past its range, which is exactly the drift seen when scratching
+    // (ticks lost at the stop never come back on the reverse turn). Friction
+    // is unbounded and continuous, so every tick reaches the debt account.
+    if(wheelDomainScans(domain)){
+      wheelMode = WHEEL_FRICTION;
+    }
   } else {
     activeWheelDomain = -1;
     wheelMode = profileWheelMode;
