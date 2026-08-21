@@ -372,5 +372,53 @@
         </MacroButton>
       </MacroButtons>
     </Profile>
+    <Profile name="Media">
+      <WheelMode>Clicky</WheelMode>
+      <WheelKey>0</WheelKey>
+      <MacroButtons>
+        <MacroButton>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Volume</Label>
+          <WheelMode>Endstop</WheelMode>
+          <WheelUp>0,175</WheelUp>
+          <WheelDown>0,174</WheelDown>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Scratch</Label>
+          <WheelMode>Endstop</WheelMode>
+          <WheelUp>0,179</WheelUp>
+          <WheelDown>0,180</WheelDown>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,205</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Play/Pause</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,181</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Next</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,182</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Prev</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,173</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Mute</Label>
+        </MacroButton>
+      </MacroButtons>
+    </Profile>
   </Profiles>
 </Configuration>

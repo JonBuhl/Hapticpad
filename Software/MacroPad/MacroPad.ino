@@ -163,6 +163,27 @@ volatile int wheelMode = 0;
 int lastWheelMode = -1; //core 0 only
 volatile bool wheelModeChanged = true;
 
+// ---- Wheel domains ----
+// A macro button that carries a <WheelMode> of its own replaces what the wheel
+// does while it is selected, instead of sending a macro. wheelMode above always
+// holds whatever is currently driving the wheel; these two keep the profile's
+// own settings so we can fall back to them, and so lastState never records a
+// domain mode.
+uint8_t profileWheelMode = 0;
+uint8_t profileWheelKey = 0;
+// Per button domain settings, WHEEL_DOMAIN_NONE = ordinary macro button. Note
+// that WHEEL_DOMAIN_NONE is not zero, so these cannot be left to zero init or
+// every button would look like a Clicky domain until a profile is loaded.
+uint8_t buttonWheelMode[6] = {
+  WHEEL_DOMAIN_NONE, WHEEL_DOMAIN_NONE, WHEEL_DOMAIN_NONE,
+  WHEEL_DOMAIN_NONE, WHEEL_DOMAIN_NONE, WHEEL_DOMAIN_NONE
+};
+uint8_t buttonWheelUp[6];
+uint8_t buttonWheelDown[6];
+// Written on core 1 by the button handler, read on core 0 in wheelScrollOutput()
+// and on core 1 by the display. Must be volatile, see wheelMode above.
+volatile int8_t activeWheelDomain = -1; //-1 = profile default
+
 bool FOC_Ready = false;
 
 #define buttonCount 8 //Number of buttons connected
@@ -222,6 +243,11 @@ void drawUsbStorageScreen();
 
 unsigned long buttonPressStart[buttonCount];
 bool menuButtonHandled[buttonCount];
+// Wheel domain buttons toggle on the press edge only, so holding one down does
+// not keep flipping the domain.
+bool domainButtonHandled[6];
+unsigned long domainToggleTimer = 0;
+#define DOMAIN_TOGGLE_DEBOUNCE_MS 150
 
 uint8_t wheelAction;
 uint8_t macroAction[6][3];   // decimal values
@@ -344,6 +370,45 @@ void setup1(){ //core 1
   while(!FOC_Ready){delay(10);}
 }
 
+// True when the given domain turns wheel ticks into key taps rather than
+// leaving them as a mouse scroll.
+bool wheelDomainSendsKeys(int8_t domain){
+  if(domain < 0 || domain >= 6 || buttonWheelMode[domain] == WHEEL_DOMAIN_NONE){
+    return false;
+  }
+  return buttonWheelUp[domain] != 0 || buttonWheelDown[domain] != 0;
+}
+
+// Points the wheel at a button's domain, or back at the profile default when
+// handed anything that is not a domain button.
+void setWheelDomain(int8_t domain){
+  if(domain >= 0 && domain < 6 && buttonWheelMode[domain] != WHEEL_DOMAIN_NONE){
+    activeWheelDomain = domain;
+    wheelMode = buttonWheelMode[domain];
+    // A domain that taps its own keys must not also hold the profile's wheel
+    // key down, it is not scrolling at all.
+    wheelAction = wheelDomainSendsKeys(domain) ? 0 : profileWheelKey;
+  } else {
+    activeWheelDomain = -1;
+    wheelMode = profileWheelMode;
+    wheelAction = profileWheelKey;
+  }
+
+  wheelModeChanged = true; //core 0 rebuilds the haptic model for the new mode
+}
+
+void clearWheelDomain(){
+  if(activeWheelDomain >= 0){
+    setWheelDomain(-1);
+  }
+}
+
+// Press a domain button: switch to it, or back to the profile default when it
+// is the one already running.
+void toggleWheelDomain(int8_t domain){
+  setWheelDomain(activeWheelDomain == domain ? -1 : domain);
+}
+
 void buttonRead(){ //Read button inputs and set state arrays.
   for (int i = 0; i < buttonCount; i++){
     int input = !digitalRead(buttonPins[i]);
@@ -354,6 +419,9 @@ void buttonRead(){ //Read button inputs and set state arrays.
     lastButtonState[i] = input;
     if(!input){
       menuButtonHandled[i] = false;
+      if(i < 6){
+        domainButtonHandled[i] = false;
+      }
     }
   }
 
@@ -383,6 +451,18 @@ void buttonRead(){ //Read button inputs and set state arrays.
 
   if(sdDetected && !profileSelectMenu){
     for(int i = 0; i < 6; i++){
+      if(buttonWheelMode[i] != WHEEL_DOMAIN_NONE){
+        // Wheel domain button: it only ever switches the wheel over, its macro
+        // actions are ignored. Edge triggered so a held button toggles once.
+        if(lastButtonState[i] && !domainButtonHandled[i] &&
+           domainToggleTimer + DOMAIN_TOGGLE_DEBOUNCE_MS < millis()){
+          domainButtonHandled[i] = true;
+          domainToggleTimer = millis();
+          toggleWheelDomain((int8_t)i);
+        }
+        continue;
+      }
+
       if(lastButtonState[i]){
         macroOutput(i);
         keyPressed = true;
@@ -516,6 +596,7 @@ bool enterUsbStorageMode(){
   usbStorageMode = true;
   sdDetected = false;
   hapticTestActive = false;
+  clearWheelDomain();
   profileSelectMenu = false;
   menuPage = MENU_NONE;
   currentMenu = nullptr;
@@ -842,6 +923,7 @@ void renderCurrentMenu(){
 
 void openMenu(){
   hapticTestActive = false;
+  clearWheelDomain(); //the menu owns the wheel, and it is gone on the way out
   profileSelectMenu = true;
   profilePlusStarted = false;
   profileMinusStarted = false;
@@ -937,6 +1019,22 @@ uint16_t convertConsumerKeycode(int input){
       return HID_USAGE_CONSUMER_VOLUME_DECREMENT;
     case 175:
       return HID_USAGE_CONSUMER_VOLUME_INCREMENT;
+    case 176:
+      return HID_USAGE_CONSUMER_PLAY;
+    case 177:
+      return HID_USAGE_CONSUMER_PAUSE;
+    case 179:
+      return HID_USAGE_CONSUMER_FAST_FORWARD;
+    case 180:
+      return HID_USAGE_CONSUMER_REWIND;
+    case 181:
+      return HID_USAGE_CONSUMER_SCAN_NEXT_TRACK;
+    case 182:
+      return HID_USAGE_CONSUMER_SCAN_PREVIOUS_TRACK;
+    case 183:
+      return HID_USAGE_CONSUMER_STOP;
+    case 205:
+      return HID_USAGE_CONSUMER_PLAY_PAUSE;
   }
   return 0;
 }
@@ -1064,7 +1162,8 @@ bool storeLastState(){
 
   File file = SD.open("/lastState", FILE_WRITE);
   if(file){
-    file.print(wheelMode); file.print(",");
+    // Always the profile's own mode, never whichever domain happens to be up.
+    file.print(profileWheelMode); file.print(",");
     file.print(ledMode); file.print(",");
     file.print(primaryColour[0]); file.print(",");
     file.print(primaryColour[1]); file.print(",");
@@ -1099,6 +1198,9 @@ bool readLastState(){
   if(wheelMode < 0 || wheelMode >= WHEEL_MODE_COUNT){
     wheelMode = WHEEL_CLICKY;
   }
+  // The restored mode becomes the profile default, and no domain is up yet.
+  profileWheelMode = (uint8_t)wheelMode;
+  activeWheelDomain = -1;
   if(ledMode >= LED_MODE_COUNT){
     ledMode = LED_MODE_COUNT - 1;
   }

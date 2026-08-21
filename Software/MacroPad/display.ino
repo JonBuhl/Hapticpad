@@ -33,7 +33,17 @@ void drawGrid() { //Draws button grid
 
 void drawActiveProfile(){ //Draws all icons and labels from config.xml for active profile
   u8g2.setFont(u8g2_font_5x7_tf);
-  u8g2.drawStr( 0, 36, profileName);//.c_str());
+
+  // While a wheel domain is running, its button's label takes the place of the
+  // profile name so it is obvious what the wheel is doing.
+  int8_t domain = activeWheelDomain;
+  if(domain >= 0 && domain < 6){
+    char domainLine[40];
+    snprintf(domainLine, sizeof(domainLine), "> %s", buttonLabel[domain]);
+    u8g2.drawStr( 0, 36, domainLine);
+  } else {
+    u8g2.drawStr( 0, 36, profileName);//.c_str());
+  }
 
   //Draw Icons
   drawIcon15x15(13, 0, icon1);

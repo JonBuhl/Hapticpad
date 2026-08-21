@@ -7,11 +7,21 @@
 #   Buchstaben: A-Z = 65-90 · Ziffern: 0-9 = 48-57
 #   32=Leertaste, 13=Enter, 9=Tab, 27=Esc, 33/34=PageUp/Down, 36/35=Home/End
 #   Pfeile: 37=L, 38=O, 39=R, 40=U · F1-F12 = 112-123
-#   Media: 173=Mute, 174=Vol-, 175=Vol+
+#   Media: 173=Mute, 174=Vol-, 175=Vol+, 176=Play, 177=Pause, 179=Vorspulen,
+#          180=Zurückspulen, 181=Nächster Titel, 182=Voriger Titel, 183=Stop,
+#          205=Play/Pause
 #
 # Jeder Button = Liste aus bis zu 3 Aktionen; eine Aktion = [Delay_ms, Keycode].
 # Modifier-Kombi z.B. Strg+C = [[0,17],[0,67],[0,0]].
 # WheelKey: Taste, die beim Drehen gehalten wird (0 = keine). Z.B. 17 für Strg+Scroll (Zoom).
+#
+# Wheel-Domains (optional, pro Button):
+#   wheelMode: einer der 8 Modus-Namen. Macht den Button zum Domain-Umschalter,
+#              seine actions werden dann ignoriert. Drücken schaltet das Rad auf
+#              diesen Modus, nochmal drücken zurück zum Profil-Default.
+#   wheelUp / wheelDown: optionale Aktion [Delay_ms, Keycode] je Drehrichtung.
+#              Gesetzt = jeder Rasten-Tick sendet einen Tastendruck statt zu
+#              scrollen. Weggelassen = normales Scrollen mit der Haptik der Domain.
 
 Settings:
   LED_Mode: "Solid"
@@ -186,3 +196,28 @@ Profiles:
         actions: [[0, 122], [0, 0], [0, 0]]
       - label: "Esc"
         actions: [[0, 27], [0, 0], [0, 0]]
+
+  # 9 — Media: zeigt die Wheel-Domains. Button 1 und 2 ersetzen das Scrollen
+  # durch eigene Rad-Modi, Button 3-6 sind normale Macro-Buttons.
+  - name: "Media"
+    WheelMode: "Clicky"
+    WheelKey: 0
+    buttons:
+      # Endstops als Anschlag bei 0% und 100% Lautstärke.
+      - label: "Volume"
+        wheelMode: "Endstop"
+        wheelUp: [0, 175]
+        wheelDown: [0, 174]
+      # Endstops wie Anfang/Ende eines Songs, Ticks spulen vor/zurück.
+      - label: "Scratch"
+        wheelMode: "Endstop"
+        wheelUp: [0, 179]
+        wheelDown: [0, 180]
+      - label: "Play/Pause"
+        actions: [[0, 205], [0, 0], [0, 0]]
+      - label: "Next"
+        actions: [[0, 181], [0, 0], [0, 0]]
+      - label: "Prev"
+        actions: [[0, 182], [0, 0], [0, 0]]
+      - label: "Mute"
+        actions: [[0, 173], [0, 0], [0, 0]]

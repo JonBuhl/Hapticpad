@@ -39,6 +39,10 @@
 // Pseudo mode used internally while the on screen menu is open.
 #define WHEEL_MODE_MENU     255
 
+// Stored per macro button: the button has no <WheelMode> of its own, so it is a
+// plain macro button rather than a wheel domain.
+#define WHEEL_DOMAIN_NONE   255
+
 const char *wheelModeNames[WHEEL_MODE_COUNT] = {
   "Clicky", "Twist", "Momentum", "Free", "Endstop", "Friction", "Snap", "Magnetic"
 };

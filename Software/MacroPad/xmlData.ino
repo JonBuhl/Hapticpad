@@ -35,6 +35,59 @@ uint8_t parseDetentPositions(const char *text, uint8_t *positions, uint8_t maxCo
   return count;
 }
 
+// Reads forward until token has been consumed, keeping what came before it in
+// buf. Used to lift the optional part of a <MacroButton> out of the stream in
+// one go: File::find() cannot be used for optional tags, a tag that is not
+// there would simply be found inside the next profile instead.
+size_t readUntilToken(File &file, const char *token, char *buf, size_t bufSize) {
+  size_t tokenLength = strlen(token);
+  size_t matched = 0;
+  size_t stored = 0;
+
+  while (file.available()) {
+    int value = file.read();
+    if (value < 0) break;
+
+    char c = (char)value;
+    if (stored + 1 < bufSize) {
+      buf[stored] = c;
+      stored++;
+    }
+
+    if (c == token[matched]) {
+      matched++;
+      if (matched == tokenLength) {
+        // Drop the terminator itself, callers only want the content.
+        stored = (stored >= tokenLength) ? stored - tokenLength : 0;
+        break;
+      }
+    } else {
+      matched = (c == token[0]) ? 1 : 0;
+    }
+  }
+
+  buf[stored] = '\0';
+  return stored;
+}
+
+// Content of <tag> inside an already buffered chunk of XML, or nullptr.
+const char *findTagValue(const char *text, const char *openTag) {
+  const char *hit = strstr(text, openTag);
+  return hit ? hit + strlen(openTag) : nullptr;
+}
+
+// Reads a "delay,keycode" pair and returns just the keycode. The delay is part
+// of the shared action format but has no meaning for a single wheel tick.
+uint8_t parseActionKeycode(const char *value) {
+  const char *comma = strchr(value, ',');
+  if (!comma) return 0;
+
+  long keycode = strtol(comma + 1, nullptr, 10);
+  if (keycode < 0 || keycode > 255) return 0;
+
+  return (uint8_t)keycode;
+}
+
 uint8_t parseLEDMode(const char *mode) {
   int8_t idx = ledModeIndex(mode);
   return idx >= 0 ? (uint8_t)idx : 5;
@@ -89,13 +142,21 @@ bool loadProfile(const char *filename, uint16_t index) {
   file.find("<WheelMode>");
   size_t len = file.readBytesUntil('<', wheelModeBuf, sizeof(wheelModeBuf) - 1);
   wheelModeBuf[len] = '\0';
-  wheelMode = parseWheelMode(wheelModeBuf);
+  profileWheelMode = parseWheelMode(wheelModeBuf);
+  wheelMode = profileWheelMode;
 
   //Key to hold while scrolling
   if (file.find("<WheelKey>")) {
     wheelAction = (uint8_t)file.parseInt();
     file.find("</WheelKey>");
   }
+  profileWheelKey = wheelAction;
+
+  // A freshly loaded profile always starts on its own wheel behaviour.
+  activeWheelDomain = -1;
+  memset(buttonWheelMode, WHEEL_DOMAIN_NONE, sizeof(buttonWheelMode));
+  memset(buttonWheelUp, 0, sizeof(buttonWheelUp));
+  memset(buttonWheelDown, 0, sizeof(buttonWheelDown));
 
   // Clear macros
   memset(macroAction, 0, sizeof(macroAction));
@@ -126,8 +187,31 @@ bool loadProfile(const char *filename, uint16_t index) {
       size_t len = file.readBytesUntil('<', buttonLabel[btn], sizeof(buttonLabel[btn]) - 1);
       buttonLabel[btn][len] = '\0';
     }
-    
-    
+
+    // --- Optional wheel domain tags ---
+    // Everything left in this button is pulled out in one read so the optional
+    // tags can be looked up without ever running past the end of the button.
+    char tail[192];
+    readUntilToken(file, "</MacroButton>", tail, sizeof(tail));
+
+    const char *domainMode = findTagValue(tail, "<WheelMode>");
+    if (domainMode) {
+      char modeBuf[16];
+      size_t modeLen = 0;
+      while (modeLen < sizeof(modeBuf) - 1 && domainMode[modeLen] && domainMode[modeLen] != '<') {
+        modeBuf[modeLen] = domainMode[modeLen];
+        modeLen++;
+      }
+      modeBuf[modeLen] = '\0';
+
+      buttonWheelMode[btn] = parseWheelMode(modeBuf);
+
+      const char *up = findTagValue(tail, "<WheelUp>");
+      if (up) buttonWheelUp[btn] = parseActionKeycode(up);
+
+      const char *down = findTagValue(tail, "<WheelDown>");
+      if (down) buttonWheelDown[btn] = parseActionKeycode(down);
+    }
   }
 
   file.close();

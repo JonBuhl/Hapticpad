@@ -23,6 +23,54 @@ void menuScrollSteps(int steps){
   }
 }
 
+// Sends one key tap. Consumer keys carry their own press/release pair, the
+// keyboard ones are released straight away so a run of ticks reads as a run of
+// separate presses rather than one held key.
+void sendWheelDomainKey(uint8_t key){
+  uint16_t consumer = convertConsumerKeycode(key);
+  if(consumer != 0){
+    sendConsumerKey(consumer);
+    return;
+  }
+
+  uint8_t keycode[6] = { 0 };
+  int modifier = checkModifiers(key);
+
+  if(modifier == 0){
+    keycode[0] = convertKeycode(key);
+    if(keycode[0] == 0){
+      return;
+    }
+  }
+
+  usb_keyboard.keyboardReport(REPORT_ID_KEYBOARD, modifier, keycode);
+  delay(5);
+  usb_keyboard.keyboardRelease(REPORT_ID_KEYBOARD);
+}
+
+// One scroll tick becomes one tap of the direction's action. Positive scroll is
+// the direction that would otherwise scroll up, so that is the WheelUp action.
+void wheelDomainOutput(int scroll){
+  int8_t domain = activeWheelDomain;
+  if(domain < 0 || domain >= 6){
+    return;
+  }
+
+  uint8_t key = (scroll > 0) ? buttonWheelUp[domain] : buttonWheelDown[domain];
+  if(key == 0){
+    return;
+  }
+
+  int count = abs(scroll);
+  if(count > HAPTIC_MAX_STEPS_PER_LOOP){
+    count = HAPTIC_MAX_STEPS_PER_LOOP;
+  }
+
+  for(int i = 0; i < count; i++){
+    sendWheelDomainKey(key);
+  }
+}
+
 // Every wheel mode funnels its ticks through here, so this is the one place that
 // decides where they end up.
 void wheelScrollOutput(int scroll){
@@ -45,6 +93,15 @@ void wheelScrollOutput(int scroll){
   if(profileSelectMenu){
     cancelWheelAction();
     menuScrollSteps(scroll);
+    return;
+  }
+
+  // An active wheel domain with direction actions taps keys instead of
+  // scrolling. Domains without them fall through and scroll as usual, just with
+  // the domain's own haptic feel.
+  if(wheelDomainSendsKeys(activeWheelDomain)){
+    cancelWheelAction();
+    wheelDomainOutput(scroll);
     return;
   }
 
