@@ -248,3 +248,28 @@ Profiles:
       # Shift+Druck = Bereichs-Screenshot (GNOME).
       - label: "Area Shot"
         actions: [[0, 16], [0, 44], [0, 0]]
+
+  # 11 — Hermes: Shortcuts der Hermes Desktop App (Linux: Ctrl statt Cmd).
+  # Rad scrollt den Chat-Verlauf (Clicky), die Knöpfe steuern die App direkt.
+  - name: "Hermes"
+    WheelMode: "Clicky"
+    WheelKey: 0
+    buttons:
+      # Esc bricht den laufenden Agent-Turn ab.
+      - label: "Stop"
+        actions: [[0, 27], [0, 0], [0, 0]]
+      # Ctrl+N = neuer Session-Tab.
+      - label: "Neu"
+        actions: [[0, 17], [0, 78], [0, 0]]
+      # Ctrl+K = Command Palette.
+      - label: "Palette"
+        actions: [[0, 17], [0, 75], [0, 0]]
+      # Ctrl+` = Terminal-Pane zeigen/verstecken.
+      - label: "Terminal"
+        actions: [[0, 17], [0, 192], [0, 0]]
+      # Ctrl+G = Git-Review-Pane umschalten.
+      - label: "Review"
+        actions: [[0, 17], [0, 71], [0, 0]]
+      # Ctrl+J = rechte Preview-Rail umschalten.
+      - label: "Preview"
+        actions: [[0, 17], [0, 74], [0, 0]]

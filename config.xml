@@ -462,5 +462,47 @@
         </MacroButton>
       </MacroButtons>
     </Profile>
+    <Profile name="Hermes">
+      <WheelMode>Clicky</WheelMode>
+      <WheelKey>0</WheelKey>
+      <MacroButtons>
+        <MacroButton>
+          <Action>0,27</Action>
+          <Action>0,0</Action>
+          <Action>0,0</Action>
+          <Label>Stop</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,78</Action>
+          <Action>0,0</Action>
+          <Label>Neu</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,75</Action>
+          <Action>0,0</Action>
+          <Label>Palette</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,192</Action>
+          <Action>0,0</Action>
+          <Label>Terminal</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,71</Action>
+          <Action>0,0</Action>
+          <Label>Review</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,17</Action>
+          <Action>0,74</Action>
+          <Action>0,0</Action>
+          <Label>Preview</Label>
+        </MacroButton>
+      </MacroButtons>
+    </Profile>
   </Profiles>
 </Configuration>
