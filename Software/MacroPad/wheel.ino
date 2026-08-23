@@ -130,6 +130,87 @@ void wheelTapTick(){
   wheelTapQueuePop();
 }
 
+// ---------------------------------------------------------------------------
+// Serial scratch output
+//
+// A domain whose direction action is WHEEL_KEY_SERIAL_SCRATCH sends no HID at
+// all. Its detents are counted as a signed delta, forward positive and back
+// negative, and handed to the host daemon as a single line
+//
+//     S<delta>\n
+//
+// on the USB CDC port this firmware already opens (115200 8N1, /dev/ttyACM0 on
+// Linux). The daemon turns the delta into an absolute MPRIS seek, so unlike a
+// stream of seek keys the position never drifts: a line that arrives late only
+// moves the song late, it does not move it to the wrong place.
+//
+// The detents are counted wherever the active wheel mode runs, the line is
+// written from loop() on core 0 where Serial is already in use. Batching keeps
+// that write short, core 0 is the FOC loop, and a wheel that is not being
+// turned produces no delta and therefore no line at all.
+//
+// The debug prints elsewhere in the firmware share this port. That is fine, the
+// daemon ignores every line that does not start with 'S', but it does mean an
+// S line has to go out as one piece with nothing printed into the middle of it.
+// ---------------------------------------------------------------------------
+
+// Longest a batch of detents is held back before it is reported. Short enough
+// to feel immediate on the wheel, long enough that a fast turn costs core 0 one
+// write rather than one per detent.
+#define SERIAL_SCRATCH_INTERVAL_MS 20
+
+// Total detents the scratch domain has produced, and how many of those have
+// been reported. Same single producer / single consumer split as the tap queue
+// above: only the wheel mode ever moves the total, only core 0 ever moves the
+// sent count, so neither side has to lock the other out. A 32 bit aligned word
+// is written in one bus cycle on the RP2040, so a half written value cannot be
+// observed either.
+volatile int32_t serialScratchTotal = 0; //written by whichever core runs the wheel mode
+int32_t serialScratchSent = 0;           //core 0 only
+unsigned long serialScratchTimer = 0;    //core 0 only
+
+void serialScratchAdd(int steps){
+  if(steps == 0){
+    return;
+  }
+
+  serialScratchTotal += steps;
+}
+
+// Writes the detents counted since the last line, at most one line every
+// SERIAL_SCRATCH_INTERVAL_MS. Standing still leaves the delta at zero and the
+// interval keeps being pushed forward, so the wheel is silent when it is not
+// moving and the first detent of a turn goes out immediately.
+void serialScratchTick(){
+  int32_t total = serialScratchTotal;
+  int32_t delta = total - serialScratchSent;
+
+  if(delta == 0){
+    serialScratchTimer = millis();
+    return;
+  }
+
+  if(millis() - serialScratchTimer < SERIAL_SCRATCH_INTERVAL_MS){
+    return; //still collecting, the delta keeps adding up until the batch is due
+  }
+
+  serialScratchSent = total;
+  serialScratchTimer = millis();
+
+  // The line the daemon parses: 'S', the signed detent delta, newline. Built in
+  // one buffer and pushed out in one write so nothing can land inside it.
+  char line[16];
+  int len = snprintf(line, sizeof(line), "S%ld\n", (long)delta);
+
+  // The endpoint is never waited on, this is the FOC core. It only fills up
+  // when nothing is draining it, so a pad with no daemon listening loses the
+  // batch instead of stalling the loop. Losing it is the point: a delta held
+  // back until something connects would arrive as one enormous jump.
+  if(Serial.availableForWrite() >= len){
+    Serial.write((const uint8_t *)line, len);
+  }
+}
+
 // One scroll tick becomes one tap of the direction's action. Positive scroll is
 // the direction that would otherwise scroll up, so that is the WheelUp action.
 void wheelDomainOutput(int scroll){
@@ -146,6 +227,14 @@ void wheelDomainOutput(int scroll){
   int count = abs(scroll);
   if(count > HAPTIC_MAX_STEPS_PER_LOOP){
     count = HAPTIC_MAX_STEPS_PER_LOOP;
+  }
+
+  // Not a key: the detents are accumulated and reported over serial instead.
+  // Both directions of a scratch domain carry the same pseudo keycode, the sign
+  // of the scroll is what tells the daemon which way the wheel went.
+  if(key == WHEEL_KEY_SERIAL_SCRATCH){
+    serialScratchAdd(scroll > 0 ? count : -count);
+    return;
   }
 
   for(int i = 0; i < count; i++){

@@ -180,6 +180,12 @@ uint8_t buttonWheelMode[6] = {
 };
 uint8_t buttonWheelUp[6];
 uint8_t buttonWheelDown[6];
+// Pseudo keycode for a direction action. It is not a key and must never reach
+// convertKeycode() or convertConsumerKeycode(), which is why it sits in the gap
+// between the consumer codes (173-205) and the punctuation ones (219-222) that
+// keyCodes.ino uses. A domain carrying it reports its detents to the host over
+// the serial port instead of pressing anything, see serialScratchTick().
+#define WHEEL_KEY_SERIAL_SCRATCH 250
 // Written on core 1 by the button handler, read on core 0 in wheelScrollOutput()
 // and on core 1 by the display. Must be volatile, see wheelMode above.
 volatile int8_t activeWheelDomain = -1; //-1 = profile default
@@ -421,8 +427,9 @@ void setup1(){ //core 1
   while(!FOC_Ready){delay(10);}
 }
 
-// True when the given domain turns wheel ticks into key taps rather than
-// leaving them as a mouse scroll.
+// True when the given domain turns wheel ticks into its own output rather than
+// leaving them as a mouse scroll. That output is a key tap for every direction
+// action except WHEEL_KEY_SERIAL_SCRATCH, which is reported over serial.
 bool wheelDomainSendsKeys(int8_t domain){
   if(domain < 0 || domain >= 6 || buttonWheelMode[domain] == WHEEL_DOMAIN_NONE){
     return false;
@@ -746,6 +753,11 @@ void loop() {
   // mode check so a key that is still down when the pad turns into a card
   // reader is let go of first.
   wheelTapTick();
+
+  // The serial scratch delta goes out from here too, and for the same reason:
+  // this is the core that owns Serial, and one short batched write per 20 ms is
+  // all the FOC loop can afford.
+  serialScratchTick();
 
   if(usbStorageMode){
     lastWheelMode = -1; //re-initialise the wheel when storage mode ends

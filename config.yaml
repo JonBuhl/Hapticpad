@@ -11,6 +11,9 @@
 #          180=Zurückspulen, 181=Nächster Titel, 182=Voriger Titel, 183=Stop,
 #          184=Helligkeit+, 185=Helligkeit-, 205=Play/Pause
 #   Sonstiges: 44=Druck (PrintScreen/Screenshot)
+#   Pseudo-Keycode (nur fuer wheelUp/wheelDown): 250 = Serial-Scratch. Kein
+#   Tastendruck, sondern eine Zeile "S<delta>\n" pro 20 ms ueber USB-CDC
+#   (115200 8N1) an den Host-Daemon, der daraus eine absolute Songposition macht.
 #
 # Jeder Button = Liste aus bis zu 3 Aktionen; eine Aktion = [Delay_ms, Keycode].
 # Modifier-Kombi z.B. Strg+C = [[0,17],[0,67],[0,0]].
@@ -213,8 +216,15 @@ Profiles:
         wheelMode: "Endstop"
         wheelUp: [0, 175]
         wheelDown: [0, 174]
-      - label: "Stop"
-        actions: [[0, 183], [0, 0], [0, 0]]
+      # Scratchen: 250 ist kein HID-Key, sondern schickt die Rasten als
+      # signiertes Delta ("S<n>") ueber den seriellen Port an den Host-Daemon,
+      # der die Songposition absolut setzt — deshalb driftet nichts.
+      # Die Endstopps geben dem Rad nur das Gefuehl eines Songs mit Anfang und
+      # Ende; die echten Grenzen kennt und clamped der Player.
+      - label: "Scratch"
+        wheelMode: "Endstop"
+        wheelUp: [0, 250]
+        wheelDown: [0, 250]
       - label: "Play/Pause"
         actions: [[0, 205], [0, 0], [0, 0]]
       - label: "Next"
