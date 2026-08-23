@@ -62,6 +62,10 @@ const char *wheelModeNames[WHEEL_MODE_COUNT] = {
 #define HAPTIC_DETENT_VOLTAGE        3.0f
 // Voltage limit used by the non haptic modes (Momentum), as per the original firmware.
 #define MOTOR_BASE_VOLTAGE_LIMIT     3.0f
+// PWM carrier frequency for the 6-PWM driver. SimpleFOC default (~20 kHz) sits
+// inside the audible range and makes the motor whine under load; 50 kHz is
+// above it. Applied once before driver.init() in setup().
+#define MOTOR_PWM_FREQUENCY          50000
 // A snap point of exactly 0.5 would sit right on the boundary between two
 // positions and could rattle between them, so keep a little hysteresis.
 #define HAPTIC_MIN_SNAP_POINT        0.55f

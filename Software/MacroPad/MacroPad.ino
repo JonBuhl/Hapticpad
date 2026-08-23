@@ -324,6 +324,10 @@ void usbStorageFlushCb(void) {
 }
 
 void setup() { //Core 0
+  // 50 kHz instead of the SimpleFOC default (~20 kHz): pushes the PWM carrier
+  // and its sidebands above the audible range so the gimbal motor stops whining
+  // under load. RP2040 has plenty of PWM headroom for this.
+  driver.pwm_frequency = MOTOR_PWM_FREQUENCY;
   driver.voltage_power_supply = 5;
   driver.voltage_limit = 5;
   driver.init();
