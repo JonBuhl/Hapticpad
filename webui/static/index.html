@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HapticPad Studio</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <strong>HapticPad Studio</strong>
+        <small id="pathHint">…</small>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab is-active" data-tab="config">XML-Generator</button>
+      <button class="tab" data-tab="bmp">BMP-Generator</button>
+      <button class="tab" data-tab="catalog">Katalog</button>
+    </nav>
+    <div id="toast" class="toast"></div>
+  </header>
+
+  <!-- ------------------------------------------------------ XML-Generator -->
+  <main id="tab-config" class="tabpanel is-active">
+    <section class="col col-settings">
+      <div class="colhead">
+        <h2>Settings</h2>
+        <div class="rowbtns">
+          <button class="btn ghost" id="btnLoadRepo" title="config.xml aus dem Repo laden">Laden</button>
+          <button class="btn ghost" id="btnImportFile" title="Beliebige config.xml einlesen">Datei…</button>
+          <input type="file" id="fileImport" accept=".xml" hidden>
+        </div>
+      </div>
+      <p class="hint">
+        Die Firmware sucht die Tags der Reihe nach im Dateistrom — die Reihenfolge
+        wird beim Schreiben automatisch eingehalten, egal wie du hier sortierst.
+      </p>
+      <div id="settingsForm"></div>
+    </section>
+
+    <section class="col col-profiles">
+      <div class="colhead">
+        <h2>Profile <span class="chip" id="profileCount">0</span></h2>
+        <div class="rowbtns">
+          <button class="btn ghost" id="btnAddProfile">+ Profil</button>
+        </div>
+      </div>
+      <div class="profiletabs" id="profileTabs"></div>
+      <div id="profileEditor"></div>
+    </section>
+
+    <section class="col col-output">
+      <div class="colhead">
+        <h2>Ausgabe</h2>
+        <div class="rowbtns">
+          <button class="btn ghost" id="btnCopyXml">Kopieren</button>
+          <button class="btn" id="btnSave">Speichern</button>
+        </div>
+      </div>
+      <div class="savebox">
+        <label><input type="checkbox" class="savetarget" value="repo" checked> config.xml (Repo)</label>
+        <label><input type="checkbox" class="savetarget" value="sdcard" checked> Example SD Card/config.xml</label>
+        <label title="Ueberschreibt die handgepflegte config.yaml samt ihrer Kommentare">
+          <input type="checkbox" class="savetarget" value="yaml"> config.yaml <em>(ersetzt die Kommentare)</em></label>
+        <label><input type="checkbox" class="savetarget" value="sdroot"> config.xml in den SD-Kartenordner</label>
+      </div>
+      <div id="notes" class="notes"></div>
+      <div class="viewswitch">
+        <button class="pill is-active" data-view="xml">XML</button>
+        <button class="pill" data-view="yaml">YAML</button>
+      </div>
+      <pre id="xmlPreview" class="code"></pre>
+    </section>
+  </main>
+
+  <!-- ------------------------------------------------------ BMP-Generator -->
+  <main id="tab-bmp" class="tabpanel">
+    <section class="col col-source">
+      <div class="colhead"><h2>Quelle</h2></div>
+      <div class="segmented" id="bmpSource">
+        <button class="seg is-active" data-src="text">Text</button>
+        <button class="seg" data-src="mdi">MDI-Icon</button>
+        <button class="seg" data-src="image">Bild</button>
+        <button class="seg" data-src="shape">Form</button>
+      </div>
+
+      <div class="srcpane is-active" data-pane="text">
+        <label class="field"><span>Text</span>
+          <input type="text" id="txtText" value="1" maxlength="12"></label>
+        <label class="field"><span>Schrift</span>
+          <select id="txtFont"></select></label>
+        <label class="field"><span>Groesse (0 = automatisch)</span>
+          <input type="number" id="txtSize" value="0" min="0" max="64"></label>
+        <label class="check"><input type="checkbox" id="txtBold"> Fett</label>
+        <label class="field"><span>Schwelle <b id="txtThresholdVal">110</b></span>
+          <input type="range" id="txtThreshold" min="20" max="240" value="110"></label>
+        <p class="hint">Auf 15x15 sind ein bis zwei Zeichen realistisch. Ziffern und
+          Grossbuchstaben lesen sich am besten. Bei Groesse 0 wird gross gerendert und
+          heruntergerechnet — die Schwelle entscheidet dann, wie fett das Ergebnis wird.</p>
+      </div>
+
+      <div class="srcpane" data-pane="mdi">
+        <div id="mdiMissing" class="warnbox" hidden>
+          <p>Die MDI-Webfont liegt noch nicht in <code>webui/assets/</code>.</p>
+          <button class="btn" id="btnInstallMdi">Von jsDelivr laden (Internet)</button>
+          <p class="hint">Alternativ <code>materialdesignicons-webfont.ttf</code> und
+            <code>mdi-meta.json</code> von Hand dort ablegen.</p>
+        </div>
+        <div id="mdiReady" hidden>
+          <label class="field"><span>Suche</span>
+            <input type="search" id="mdiQuery" placeholder="z. B. volume, play, folder"></label>
+          <label class="field"><span>Schwelle <b id="mdiThresholdVal">110</b></span>
+            <input type="range" id="mdiThreshold" min="20" max="240" value="110"></label>
+          <p class="hint">Umriss-Varianten (…-outline) bleiben auf 15x15 meist besser
+            lesbar als die gefuellten. Niedrige Schwelle = fetter.</p>
+          <div class="mdigrid" id="mdiGrid"></div>
+          <p class="hint" id="mdiStatus"></p>
+        </div>
+      </div>
+
+      <div class="srcpane" data-pane="image">
+        <label class="field"><span>Bilddatei</span>
+          <input type="file" id="imgFile" accept="image/*"></label>
+        <label class="field"><span>Schwelle <b id="imgThresholdVal">128</b></span>
+          <input type="range" id="imgThreshold" min="1" max="254" value="128"></label>
+        <label class="field"><span>Gamma <b id="imgGammaVal">1.0</b></span>
+          <input type="range" id="imgGamma" min="0.2" max="3" step="0.1" value="1"></label>
+        <label class="field"><span>Skalierung</span>
+          <select id="imgFit">
+            <option value="contain">einpassen</option>
+            <option value="cover">fuellen (beschneiden)</option>
+            <option value="stretch">verzerren</option>
+          </select></label>
+        <label class="check"><input type="checkbox" id="imgTrim" checked> Rand abschneiden</label>
+        <label class="check"><input type="checkbox" id="imgDither"> Dithern statt Schwelle</label>
+        <label class="check"><input type="checkbox" id="imgInvert"> Invertieren</label>
+      </div>
+
+      <div class="srcpane" data-pane="shape">
+        <div class="shapegrid" id="shapeGrid"></div>
+      </div>
+    </section>
+
+    <section class="col col-editor">
+      <div class="colhead">
+        <h2>Editor</h2>
+        <div class="rowbtns">
+          <select id="bmpSize"></select>
+          <button class="btn ghost" id="btnClear">Leeren</button>
+        </div>
+      </div>
+
+      <div class="editorwrap">
+        <div class="grid" id="pixelGrid"></div>
+        <div class="previews">
+          <div><div class="oledbox"><canvas id="preview1x" width="15" height="15"></canvas></div>
+            <small>1:1 auf dem OLED</small></div>
+          <div><div class="oledbox oledbox--row" id="previewRow"></div>
+            <small>Tastenreihe</small></div>
+        </div>
+      </div>
+
+      <div class="toolrow">
+        <button class="btn ghost" data-op="invert">Invertieren</button>
+        <button class="btn ghost" data-op="flipH">Spiegeln ↔</button>
+        <button class="btn ghost" data-op="flipV">Spiegeln ↕</button>
+        <button class="btn ghost" data-op="rotate">Drehen 90°</button>
+        <button class="btn ghost" data-op="up">↑</button>
+        <button class="btn ghost" data-op="down">↓</button>
+        <button class="btn ghost" data-op="left">←</button>
+        <button class="btn ghost" data-op="right">→</button>
+      </div>
+
+      <div class="savebox savebox--bmp">
+        <label class="field"><span>Name</span><input type="text" id="bmpName" value="Icon"></label>
+        <label class="field"><span>Tags (Komma)</span><input type="text" id="bmpTags" placeholder="media, pfeil"></label>
+        <div class="rowbtns">
+          <button class="btn" id="btnSaveCatalog">In den Katalog</button>
+          <button class="btn ghost" id="btnDownload">.bmp laden</button>
+        </div>
+      </div>
+
+      <div class="savebox">
+        <strong>Direkt auf einen Tastenplatz legen</strong>
+        <div class="assignrow">
+          <select id="assignProfile"></select>
+          <select id="assignSlot"></select>
+          <button class="btn" id="btnAssign">Schreiben</button>
+        </div>
+        <p class="hint" id="assignHint"></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ------------------------------------------------------------ Katalog -->
+  <main id="tab-catalog" class="tabpanel">
+    <section class="col col-wide">
+      <div class="colhead">
+        <h2>Katalog <span class="chip" id="catalogCount">0</span></h2>
+        <div class="rowbtns">
+          <input type="search" id="catalogSearch" placeholder="Suchen…">
+          <button class="btn ghost" id="btnImportSd">Von SD einlesen</button>
+        </div>
+      </div>
+      <div class="iconwall" id="catalogWall"></div>
+
+      <div class="colhead">
+        <h2>SD-Karte</h2>
+        <div class="rowbtns">
+          <input type="text" id="sdPath" placeholder="Pfad der SD-Karte">
+          <button class="btn ghost" id="btnSetSd">Ordner setzen</button>
+        </div>
+      </div>
+      <div id="sdWall"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

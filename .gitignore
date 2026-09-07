@@ -13,3 +13,8 @@
 !firmware/**/
 !firmware/**/*.uf2
 !firmware/**/notes.md
+
+# WebUI: Drittanbieter-Assets (MDI-Webfont) werden zur Laufzeit geholt.
+webui/assets/*.ttf
+webui/assets/mdi-meta.json
+webui/__pycache__/
