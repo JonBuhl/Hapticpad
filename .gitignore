@@ -1,6 +1,15 @@
+# Build-Artefakte (Arduino baut neben dem Sketch)
 *.uf2
 *.map
 *.elf
 *.bin
 *README*
-/firmware/
+
+# Ausnahme: das Firmware-Archiv wird versioniert.
+# Pro Build ein Ordner firmware/<datum>_<tag>/ mit UF2 + notes.md
+# (Code-Stand, Git-Commit, SHA256, Flash-Anleitung). Erzeugt von
+# scripts/build_hapticpad.sh bzw. scripts/save_uf2.sh.
+!firmware/
+!firmware/**/
+!firmware/**/*.uf2
+!firmware/**/notes.md

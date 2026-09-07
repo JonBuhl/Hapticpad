@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # save_uf2.sh — Archiviert einen gebauten UF2 MIT Pflicht-Beschreibung in
-# firmware/ (bewusst untracked, siehe .gitignore).
+# firmware/ (versioniert, siehe .gitignore-Ausnahmen).
 #
 # Usage:
 #   scripts/save_uf2.sh <uf2-datei> <version-tag> <beschreibung...>

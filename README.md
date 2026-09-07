@@ -212,10 +212,10 @@ Required libraries: U8g2, Simple FOC, Adafruit TinyUSB Library, SdFat, FastLED.
 
 To flash: hold **BOOTSEL** while plugging in the Pico, copy the generated `.uf2` onto the `RPI-RP2` drive and the board reboots itself. To update the config, put the pad into **USB storage mode** from its menu and replace `config.xml` on the SD card.
 
-### Firmware archive (untracked)
+### Firmware archive (versioned)
 
 Every built firmware version is archived with a description of its code state in
-`firmware/` (gitignored — binaries and notes stay out of git). Build and archive
+`firmware/` and committed to the repo, so every flashed build stays reproducible. Build and archive
 in one step:
 
 ```
@@ -223,7 +223,9 @@ scripts/build_hapticpad.sh "Beschreibung der Änderungen" [version-tag]
 ```
 
 or archive an existing UF2: `scripts/save_uf2.sh <file.uf2> <version-tag> "Beschreibung..."`.
-Both refuse to archive without a description. See `firmware/README.md`.
+Both refuse to archive without a description. Each build lands in
+`firmware/<date>_<tag>/` as `MacroPad_<tag>.uf2` plus a `notes.md` recording the
+code state, commit, SHA256 and flashing steps.
 
 ### Changes vs. upstream
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # build_hapticpad.sh — Baut die Hapticpad-Firmware und archiviert das UF2
-# AUTOMATISCH mit Beschreibung in firmware/ (untracked).
+# AUTOMATISCH mit Beschreibung in firmware/ (versioniert).
 #
 # Usage:
 #   scripts/build_hapticpad.sh "Beschreibung der Änderungen" [version-tag]
