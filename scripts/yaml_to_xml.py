@@ -50,6 +50,7 @@ SETTINGS_ORDER = [
     "Snap_Point",
     "Magnetic_Strength",
     "Magnetic_Detents",
+    "Sleep_Timeout",
 ]
 
 WHEEL_MODES = [

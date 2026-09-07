@@ -328,6 +328,17 @@ bool loadSettings(const char *filename){
   if(file.find("<Magnetic_Strength>")) magneticStrength = file.parseFloat();
   if(file.find("<Magnetic_Detents>"))  magneticDetents = (uint16_t)file.parseInt();
 
+  // --- Smart sleep ---
+  // Last of the settings on purpose: a missing tag makes find() read to the end
+  // of the file, which would starve every tag that came after it.
+  if(file.find("<Sleep_Timeout>")){
+    long minutes = file.parseInt();
+    if(minutes < 0) minutes = 0;
+    if(minutes > SLEEP_MAX_TIMEOUT_MIN) minutes = SLEEP_MAX_TIMEOUT_MIN;
+    sleepTimeoutMinutes = (uint16_t)minutes;
+  }
+  noteActivity(); //a reloaded config starts its timeout from now
+
   validateHapticSettings();
 
   // core 0 only rebuilds the haptic model when the wheel mode changes, so poke

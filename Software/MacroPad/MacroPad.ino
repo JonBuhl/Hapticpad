@@ -204,6 +204,29 @@ volatile bool buttonsReady = false;
 // manage.
 #define BUTTON_DEBOUNCE_MS 25
 
+// ---- Smart sleep ----
+// Idle timeout after which the OLED and the LED ring are switched off, see
+// sleep.ino. Configurable through <Sleep_Timeout> in config.xml, 0 turns the
+// whole thing off.
+#define SLEEP_DEFAULT_TIMEOUT_MIN 5
+#define SLEEP_MAX_TIMEOUT_MIN 240
+// Radians of wheel travel that count as the user doing something, roughly a
+// degree. Well above the odd count of quadrature chatter.
+#define SLEEP_WHEEL_DEADBAND 0.02f
+uint16_t sleepTimeoutMinutes = SLEEP_DEFAULT_TIMEOUT_MIN;
+// Set on core 1 by enterSleep()/wakeFromSleep() and read on core 0 in
+// buttonDebounce(), so volatile for the same reason lastButtonState is.
+volatile bool sleepActive = false;
+// A press edge seen by core 0 while the pad is asleep. Core 1 acts on it and
+// clears it. Without this a short tap could fall between two core 1 frames and
+// leave the pad dark.
+volatile bool sleepWakeRequest = false;
+// Swallows the press that did the waking, cleared once everything is released.
+bool sleepWakeGuard = false;
+// Written by both cores, read on core 1. A plain 32 bit store, see
+// noteActivity().
+volatile unsigned long lastActivityTime = 0;
+
 //Eeprom Memory
 int activeProfile = 0;
 //int activePage = 1;
@@ -393,6 +416,8 @@ void setup1(){ //core 1
   }
   buttonsReady = true; //core 0 may start sampling now that the pins are pulled up
 
+  noteActivity(); //start the sleep timeout from a booted pad, not from millis() 0
+
   while(!FOC_Ready){delay(10);}
 }
 
@@ -467,9 +492,15 @@ void buttonDebounce(){
     }
 
     lastButtonState[i] = raw;
+    lastActivityTime = now; //holds the sleep timeout off, see sleep.ino
 
     if(raw){
       buttonPressStart[i] = now;
+      if(sleepActive){
+        // Latched rather than acted on here: waking touches the display and the
+        // LEDs, both of which belong to core 1.
+        sleepWakeRequest = true;
+      }
     } else {
       // Released for real. Edge triggered actions are armed again from here,
       // which is what keeps a bouncing release from arming a second press.
@@ -483,6 +514,25 @@ void buttonDebounce(){
 }
 
 void buttonRead(){ //Act on the debounced button states.
+  // A sleeping pad does nothing but wake up. The press that wakes it is not
+  // passed on, so the first touch after a break never fires a macro or steps
+  // the profile by accident.
+  if(sleepActive){
+    if(sleepWakeRequest || anyButtonDown()){
+      wakeFromSleep();
+    }
+    return;
+  }
+
+  if(sleepWakeGuard){
+    if(anyButtonDown()){
+      return; //still holding whatever woke it
+    }
+    sleepWakeGuard = false;
+    // Everything edge triggered was re armed by buttonDebounce() on the release
+    // that just happened, so the next press is a normal one.
+  }
+
   if(usbStorageMode){
     if(lastButtonState[6] && lastButtonState[7]){
       if(usbStorageButtonTimer == 0){
@@ -1163,14 +1213,24 @@ void macroOutput(int button){
 
 void loop1() {
   buttonRead();
+  sleepTick();
 
   if(usbStorageMode){
     TinyUSBDevice.task();
+    if(sleepActive){
+      delay(20);
+      return; //keep servicing USB, just do not light anything up
+    }
     u8g2.firstPage();
     do {
       drawUsbStorageScreen();
     } while ( u8g2.nextPage() );
     delay(20);
+    return;
+  }
+
+  if(sleepActive){
+    delay(20); //nothing to draw, and core 1 has no reason to spin flat out
     return;
   }
 

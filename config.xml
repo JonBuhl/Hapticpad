@@ -34,6 +34,7 @@
     <Snap_Point>0.55</Snap_Point>
     <Magnetic_Strength>2.5</Magnetic_Strength>
     <Magnetic_Detents>24</Magnetic_Detents>
+    <Sleep_Timeout>5</Sleep_Timeout>
   </Settings>
   <Profiles>
     <Profile name="Desktop">
@@ -501,6 +502,48 @@
           <Action>0,74</Action>
           <Action>0,0</Action>
           <Label>Preview</Label>
+        </MacroButton>
+      </MacroButtons>
+    </Profile>
+    <Profile name="Taskbar">
+      <WheelMode>Clicky</WheelMode>
+      <WheelKey>0</WheelKey>
+      <MacroButtons>
+        <MacroButton>
+          <Action>0,91</Action>
+          <Action>0,49</Action>
+          <Action>0,0</Action>
+          <Label>Pin 1</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,91</Action>
+          <Action>0,50</Action>
+          <Action>0,0</Action>
+          <Label>Pin 2</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,91</Action>
+          <Action>0,51</Action>
+          <Action>0,0</Action>
+          <Label>Pin 3</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,91</Action>
+          <Action>0,52</Action>
+          <Action>0,0</Action>
+          <Label>Pin 4</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,91</Action>
+          <Action>0,53</Action>
+          <Action>0,0</Action>
+          <Label>Pin 5</Label>
+        </MacroButton>
+        <MacroButton>
+          <Action>0,91</Action>
+          <Action>0,54</Action>
+          <Action>0,0</Action>
+          <Label>Pin 6</Label>
         </MacroButton>
       </MacroButtons>
     </Profile>

@@ -52,6 +52,10 @@ Settings:
   Snap_Point: 0.55
   Magnetic_Strength: 2.5
   Magnetic_Detents: 24
+  # Smart Sleep: Minuten ohne Eingabe, bis OLED und LED-Ring ausgehen.
+  # Jeder Tastendruck weckt beides wieder auf, dieser erste Druck loest sonst
+  # nichts aus. 0 schaltet den Schlafmodus ab.
+  Sleep_Timeout: 5
 
 Profiles:
   # 1 — Clicky: feste Rasten, 1 Raste = 1 Scroll-Tick. Präzises Scrollen / Desktop.
@@ -273,3 +277,37 @@ Profiles:
       # Ctrl+J = rechte Preview-Rail umschalten.
       - label: "Preview"
         actions: [[0, 17], [0, 74], [0, 0]]
+
+  # 12 — Taskbar: Windows-Launcher ueber Win+1..Win+6.
+  # Windows startet damit die angepinnte App an Position 1..6 der Taskleiste,
+  # bzw. fokussiert sie, wenn sie schon laeuft. Der Pad weiss nicht, was dort
+  # angepinnt ist — die Zuordnung steckt allein in den Labels hier.
+  #
+  # WICHTIG: "Pin 1".."Pin 6" durch die echten App-Namen ersetzen (max. ~9
+  # Zeichen, sonst ueberlappen die Labels auf dem OLED) und die Reihenfolge
+  # in der Taskleiste danach nicht mehr umsortieren. Aendert sie sich, zeigt
+  # der Pad still das falsche Label an.
+  #
+  # Rad = Clicky, scrollt ganz normal.
+  - name: "Taskbar"
+    WheelMode: "Clicky"
+    WheelKey: 0
+    buttons:
+      # Win+1
+      - label: "Pin 1"
+        actions: [[0, 91], [0, 49], [0, 0]]
+      # Win+2
+      - label: "Pin 2"
+        actions: [[0, 91], [0, 50], [0, 0]]
+      # Win+3
+      - label: "Pin 3"
+        actions: [[0, 91], [0, 51], [0, 0]]
+      # Win+4
+      - label: "Pin 4"
+        actions: [[0, 91], [0, 52], [0, 0]]
+      # Win+5
+      - label: "Pin 5"
+        actions: [[0, 91], [0, 53], [0, 0]]
+      # Win+6
+      - label: "Pin 6"
+        actions: [[0, 91], [0, 54], [0, 0]]

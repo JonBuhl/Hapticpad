@@ -20,6 +20,7 @@ A 6 button macropad with a display for button labels and a mouse knob with hapti
 - RGB ring with configurable colours and 5 different display modes. Halo, Bands, Breath, Rainbow, Solid and Off.
 - Easy profile switching with up down profile buttons or profile list display.
 - The Last profile is stored to the SD card so the macro pad will start on whichever profile was last active.
+- Smart sleep: after five idle minutes the OLED and the RGB ring switch themselves off, and any button press brings them back.
 
 #### Bill of Materials
 
@@ -127,6 +128,26 @@ Copy the entire contents of the "Example SD Card" folder onto your SD card to be
 
 The configuration is authored as YAML in `config.yaml` (repo root) and converted to `config.xml`, which is the file the firmware reads from the SD card root. `Example SD Card/config.xml` is the deployable copy.
 
+#### HapticPad Studio (web UI)
+
+If you would rather not hand edit the config, `webui/app.py` serves a local editor for both the XML and the icon BMPs:
+
+```bash
+python webui/app.py
+```
+
+It binds to `127.0.0.1:8765` and opens your browser. Only the standard library plus Pillow are needed — no Flask, no npm. Useful flags: `--port`, `--no-browser`, and `--sd F:/` to point the icon tools straight at a mounted SD card.
+
+Three tabs:
+
+* **XML-Generator** — every `<Settings>` tag with its real range (the sliders stop where `validateHapticSettings()` would clamp anyway), the LED modes and their menu order, and a profile editor with all six macro buttons, three actions each, keycodes picked by name, and the optional per-button wheel domain. It always writes the settings tags in the order the firmware's stream parser expects, and it shows the generated XML/YAML live next to the form. Loading `config.xml` and saving it straight back is byte identical.
+* **BMP-Generator** — turns text, a Material Design Icon, an image file or a built-in shape into a 15×15 1-bit BMP, with a pixel editor for the last few dots. Writes directly into `<SD>/<Profile>/<1-6>.bmp`.
+* **Katalog** — every icon you have generated, plus a view of what is actually on the SD card right now. Icons whose format the firmware would reject (wrong size or bit depth) are flagged.
+
+Material Design Icons need the MDI webfont in `webui/assets/`. The BMP tab has a button that fetches `materialdesignicons-webfont.ttf` and `mdi-meta.json` from jsDelivr, or you can drop both files there yourself.
+
+Saving `config.yaml` from the web UI is opt-in and off by default: the generated YAML carries the same values but not the hand-written comments in the checked-in file.
+
 In the `<Settings>` tag of the XML file you will find all of the settings for the LED's, along with the P and I tuning values for the various wheel modes.
 
 There are 6 acceptable inpts for the `<LED_Mode>` tag. If you spell the words incorrectly the commands won't work, so it would be a good idea to copy and paste from here:
@@ -161,6 +182,18 @@ The wheel is driven in torque mode by a software model of virtual detents and en
 | `<Snap_Point>` | 0.55 | Snap point for Snap mode only. Keep it near 0.55 so the wheel is always driven to the nearest position. |
 | `<Magnetic_Strength>` | 2.5 | Detent strength at the magnetic detent positions. |
 | `<Magnetic_Detents>` | 24 | Total number of positions in the Magnetic range. |
+
+#### Smart sleep
+
+| Tag | Default | What it does |
+| --- | --- | --- |
+| `<Sleep_Timeout>` | 5 | Minutes of no input before the OLED and the LED ring switch off. `0` disables sleep entirely, and anything above 240 is clamped to it. |
+
+Leave `<Sleep_Timeout>` as the **last** tag in `<Settings>`. The parser reads the file top to bottom, and a tag that is missing sends it hunting to the end of the file, so an optional setting in the middle would starve everything after it.
+
+The pad counts a button press or a turn of the wheel as activity. Once it is asleep only a button wakes it, so a wheel that gets knocked while you reach past the pad leaves it dark. The press that does the waking is swallowed: it will not fire that button's macro or step the profile, so you can wake the pad with whichever button is nearest without worrying about what it is bound to.
+
+Sleeping only turns the two light sources off. The motor keeps running its haptic model and the wheel keeps scrolling the PC, so a sleeping pad is still a working pad — it is just dark.
 
 In the `<Profiles>` tag is where each profile is stored.
 
@@ -234,4 +267,5 @@ code state, commit, SHA256 and flashing steps.
 - **Menu navigation uses Clicky haptics** — one detent, one menu entry.
 - **Haptic Test page** to feel every mode without changing profile.
 - **`config.yaml`** is the editable source; `config.xml` is generated from it.
+- **Smart sleep** (`sleep.ino`): blanks the OLED and the LED ring after `<Sleep_Timeout>` idle minutes, wakes on any button press and swallows that press.
 - **Example SD Card** ships with one profile per wheel mode and generated 15x15 icon BMPs.
